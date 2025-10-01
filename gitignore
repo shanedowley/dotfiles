@@ -1,0 +1,23 @@
+# macOS system files
+.DS_Store
+
+# Node.js dependencies
+node_modules/
+
+# Backup/swap files
+*.backup
+*.bak
+*.swp
+*.swo
+
+# Neovim runtime (plugin installs, caches, state)
+.local/share/nvim/
+.local/state/nvim/
+.cache/nvim/
+
+# Shell history (don’t leak your history!)
+.zsh_history
+.bash_history
+
+# Log files
+*.log

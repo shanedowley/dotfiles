@@ -1,0 +1,108 @@
+-- ~/.config/nvim/lua/plugins/autopairs.lua
+return {
+	-- Autopairs (auto-close brackets, parens, etc.)
+	{
+		"windwp/nvim-autopairs",
+		event = "InsertEnter",
+		config = function()
+			require("nvim-autopairs").setup({
+				check_ts = true, -- treesitter integration
+				ts_config = {
+					lua = { "string" },
+					javascript = { "template_string" },
+					java = false,
+				},
+				disable_filetype = { "TelescopePrompt", "vim" },
+
+				-- ✅ Added fast_wrap support mapped to <M-w>
+				fast_wrap = {
+					map = "<M-w>", -- Option/Alt + w
+					chars = { "{", "[", "(", '"', "'" },
+					pattern = string.gsub([[ [%'%"%)%>%]%)%}%,] ]], "%s+", ""),
+					offset = 0, -- Offset from pattern match
+					end_key = "$",
+					keys = "qwertyuiopzxcvbnmasdfghjkl",
+					check_comma = true,
+					highlight = "PmenuSel",
+					highlight_grey = "LineNr",
+				},
+			})
+
+			-- Integrate autopairs with nvim-cmp
+			local cmp_autopairs = require("nvim-autopairs.completion.cmp")
+			local ok, cmp = pcall(require, "cmp")
+			if ok then
+				cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
+			end
+		end,
+	},
+
+	-- Surround support (like vim-surround)
+	{
+		"kylechui/nvim-surround",
+		version = "*",
+		lazy = false, -- load immediately
+		config = function()
+			require("nvim-surround").setup({})
+		end,
+	},
+
+	-- Which-key helper for custom surround shortcuts
+	{
+		"folke/which-key.nvim",
+		opts = {
+			defaults = {
+				["<leader>m"] = { name = "+surround" },
+			},
+		},
+		config = function(_, opts)
+			local wk = require("which-key")
+			wk.setup(opts)
+
+			wk.add({
+				{
+					"<leader>mb",
+					function()
+						vim.cmd("normal ysiw{")
+					end,
+					desc = "Surround word with {}",
+				},
+				{
+					"<leader>mp",
+					function()
+						vim.cmd("normal ysiw(")
+					end,
+					desc = "Surround word with ()",
+				},
+				{
+					"<leader>mq",
+					function()
+						vim.cmd('normal ysiw"')
+					end,
+					desc = 'Surround word with ""',
+				},
+			})
+		end,
+	},
+}
+
+--[[
+
+📌 Surround Cheat Sheet
+=======================
+
+Motions:
+  ysiw"    → surround inner word with "quotes"
+  ysiw'    → surround inner word with 'single quotes'
+  ysiw)    → surround inner word with ( )
+  ysiw}    → surround inner word with { }
+  yss"     → surround entire line with "quotes"
+  cs"'     → change " to '
+  ds"      → delete " surround
+
+Leader Shortcuts:
+  <leader>mq  → surround word with "quotes"
+  <leader>mb  → surround word with {braces}
+  <leader>mp  → surround word with (parens)
+
+--]]
