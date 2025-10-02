@@ -48,6 +48,9 @@ alias vi='/opt/homebrew/bin/nvim'
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 alias gs='git status'
 
+# Sync dotfiles repo quickly
+alias sync='cd ~/dotfiles && git add -A && git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main && cd -'
+
 # Avoid accidental deletions
 alias rm='rm -i'
 alias mv='mv -i'
@@ -96,5 +99,3 @@ if [ -f "$HOME/codex-aliases.sh" ]; then
   source "$HOME/codex-aliases.sh"
 fi
 
-# Sync dotfiles repo quickly
-alias dotfiles-sync='cd ~/dotfiles && git add -A && git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main && cd -'
