@@ -8,7 +8,6 @@ else
     export TERMCS="light"
 fi
 
-export PATH="/Applications/MacVim.app/Contents/bin:~/bin:$PATH"
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 export EDITOR="/opt/homebrew/bin/nvim"
 export TMP="/Users/shane/tmp"
@@ -21,9 +20,6 @@ export GOOGLE="/Users/shane/Library/CloudStorage/GoogleDrive-shane@betterfasterf
 export CODING="/Users/shane/Documents/Coding"
 export NEOVIM="/Users/shane/.config/nvim"
 
-export LDFLAGS="-L/opt/homebrew/opt/ruby/lib"
-export CPPFLAGS="-I/opt/homebrew/opt/ruby/include"
-export DPROJECTS="/Users/shane/Documents/Coding/dlang/projects"
 
 # Path to dotfiles
 export DOTFILES=$HOME/dotfiles
@@ -84,18 +80,23 @@ setopt PROMPT_SUBST ; PS1='[%n@%m %c$(__git_ps1 " (%s)")]\$ '
 RPROMPT='${vcs_info_msg_0_}'
 zstyle ':vcs_info:git:*' formats '%b'
 
-export LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
-export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
+# Development env variables
+
+# LLVM + Ruby libs/includes (merged instead of overwritten)
+export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/ruby/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/ruby/include"
+
+# PATHs
 export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
-export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
 
-
-eval "$(rbenv init - zsh)"
+# Custom project dir
+export DPROJECTS="$HOME/Documents/Coding/dlang/projects"
 
 # Load Codex aliases if available
 if [ -f "$HOME/codex-aliases.sh" ]; then
   source "$HOME/codex-aliases.sh"
 fi
 
+eval "$(rbenv init - zsh)"
