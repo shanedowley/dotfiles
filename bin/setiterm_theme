@@ -1,0 +1,23 @@
+#!/bin/zsh
+# Usage: setiterm_theme "Preset Name"
+preset="$1"
+
+if [[ -z "$preset" ]]; then
+  echo "Usage: setiterm_theme \"Preset Name\"" >&2
+  exit 1
+fi
+
+osascript <<EOF
+tell application "iTerm2"
+  try
+    tell current window
+      tell current session
+        set color preset to "$preset"
+      end tell
+    end tell
+  on error
+    display notification "Preset '$preset' not found or unsupported in this version" with title "iTerm2 Theme Switch"
+  end try
+end tell
+EOF
+
