@@ -9,6 +9,7 @@ else
 fi
 
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+export PATH="$HOME/bin:$PATH"
 export EDITOR="/opt/homebrew/bin/nvim"
 export TMP="/Users/shane/tmp"
 export READING="/Users/shane/Desktop/reading, writing and study"
@@ -32,6 +33,30 @@ HISTFILE=${ZDOTDIR:-$HOME}/.zsh_history
 HISTSIZE=4000
 SAVEHIST=2000
 
+# ---- iTerm2 Theme Control ----
+# Usage: setiterm_theme "Gruvbox Dark" or "Tokyonight Storm"
+setiterm_theme() {
+  local preset="$1"
+  if [[ -z "$preset" ]]; then
+    echo "Usage: setiterm_theme \"Preset Name\"" >&2
+    return 1
+  fi
+
+  # AppleScript to apply a preset or fallback to manual color set
+  osascript <<EOF
+  tell application "iTerm2"
+    try
+      tell current window
+        tell current session
+          set color preset to "$preset"
+        end tell
+      end tell
+    on error
+      display notification "Preset '$preset' not found or unsupported in this version" with title "iTerm2 Theme Switch"
+    end try
+  end tell
+EOF
+}
 
 # Aliases 
 alias la='ls -la'
@@ -67,6 +92,15 @@ alias zxsp="open -a zxsp"
 
 # alias run Speccy emulator, zeusarux
 alias zesarux="/Applications/ZEsarUX.app/Contents/MacOS/zesarux"
+
+
+# alias for iterm color schemes
+alias toykonight="setiterm_theme "toykonight_night""
+alias gruvbox="setiterm_theme "gruvbox-dark""
+alias catppuccin="setiterm_theme "catppuccin-mocha""
+alias kanagawa="setiterm_theme "kanagawa""
+alias rose-pine="setiterm_theme "rose-pine""
+
 
 # Prevent rm -f from asking for confirmation on things like `rm -f *.bak`.
 setopt rm_star_silent

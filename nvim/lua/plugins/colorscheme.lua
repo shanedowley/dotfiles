@@ -38,13 +38,62 @@ return {
 			})
 		end,
 	},
+	----------------------------------------------------------------------
+	-- 🌸 ROSE-PINE
+	----------------------------------------------------------------------
+	{
+		"rose-pine/neovim",
+		name = "rose-pine",
+		lazy = false,
+		priority = 1000,
+		config = function()
+			require("rose-pine").setup({
+				variant = "auto", -- "auto", "main", "moon", "dawn"
+				dark_variant = "main",
+				dim_inactive_windows = false,
+				extend_background_behind_borders = true,
+				styles = {
+					bold = true,
+					italic = true,
+					transparency = false,
+				},
+			})
+		end,
+	},
+
+	----------------------------------------------------------------------
+	-- 🌊 KANAGAWA
+	----------------------------------------------------------------------
+	{
+		"rebelot/kanagawa.nvim",
+		lazy = false,
+		priority = 1000,
+		config = function()
+			require("kanagawa").setup({
+				compile = false,
+				undercurl = true,
+				commentStyle = { italic = true },
+				functionStyle = { bold = true },
+				keywordStyle = { italic = true },
+				statementStyle = { bold = true },
+				typeStyle = { italic = true },
+				transparent = false,
+				dimInactive = false,
+				theme = "wave", -- "wave", "dragon", "lotus"
+				background = {
+					dark = "wave",
+					light = "lotus",
+				},
+			})
+		end,
+	},
 
 	-- Theme switcher + persistence + lualine integration
 	{
 		"nvim-lua/plenary.nvim",
 		lazy = true,
 		config = function()
-			local themes = { "gruvbox", "tokyonight", "catppuccin" }
+			local themes = { "gruvbox", "tokyonight", "catppuccin", "rose-pine", "kanagawa" }
 			local current = 1
 			local save_path = vim.fn.stdpath("data") .. "/last-theme.txt"
 
@@ -81,15 +130,33 @@ return {
 				end
 			end
 
-			-- Theme cycling
+			-- Theme cycling with iTerm2 sync
 			vim.keymap.set("n", "<leader>ut", function()
 				current = current % #themes + 1
 				local theme = themes[current]
 				vim.cmd("colorscheme " .. theme)
 				vim.g.active_theme = theme
 				save_theme(theme)
+
+				-- Notify Neovim
 				vim.notify("Theme switched to: " .. theme, vim.log.levels.INFO)
-			end, { desc = "Switch color scheme" })
+
+				-- iTerm2 preset names must exactly match your imported ones
+				local preset_map = {
+					gruvbox = "gruvbox-dark",
+					tokyonight = "tokyonight_night",
+					catppuccin = "catppuccin-mocha",
+				}
+
+				local preset = preset_map[theme]
+				if preset then
+					local script = string.format(
+						[[osascript -e 'tell application "iTerm2" to set color preset of current window to "%s"']],
+						preset
+					)
+					vim.fn.jobstart(script, { detach = true })
+				end
+			end, { desc = "Switch color scheme (with iTerm2 sync)" })
 
 			-- Integrate theme name into Lualine
 			local ok, lualine = pcall(require, "lualine")

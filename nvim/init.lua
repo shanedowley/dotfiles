@@ -166,6 +166,28 @@ end, {
 	desc = "Convert PDF to plain text and open in Neovim",
 })
 
+-- 🖌️ Sync iTerm2 color preset with Neovim theme
+vim.api.nvim_create_autocmd("ColorScheme", {
+	callback = function()
+		local theme = vim.g.colors_name
+
+		-- Map Neovim theme names to matching iTerm2 preset names
+		local theme_map = {
+			["gruvbox"] = "Gruvbox Dark",
+			["tokyonight"] = "Tokyo Night Storm",
+			["catppuccin"] = "Catppuccin",
+			["rose-pine"] = "Rosé Pine (Main)",
+			["kanagawa"] = "Kanagawa Wave",
+		}
+
+		if theme and #theme > 0 then
+			local preset = theme_map[theme] or theme
+			vim.fn.jobstart({ "setiterm_theme", preset }, { detach = true })
+		end
+	end,
+	desc = "Sync iTerm2 preset with active Neovim colorscheme",
+})
+
 -- Convert PDF -> Markdown using pdftotext + pandoc
 vim.api.nvim_create_user_command("PDFtoMd", function(opts)
 	local input = opts.args
