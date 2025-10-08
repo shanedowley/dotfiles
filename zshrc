@@ -21,7 +21,6 @@ export GOOGLE="/Users/shane/Library/CloudStorage/GoogleDrive-shane@betterfasterf
 export CODING="/Users/shane/Documents/Coding"
 export NEOVIM="/Users/shane/.config/nvim"
 
-
 # Path to dotfiles
 export DOTFILES=$HOME/dotfiles
 
@@ -64,6 +63,7 @@ alias la='ls -la'
 # To invoke Neovim from the command line
 alias vim='/opt/homebrew/bin/nvim'
 alias vi='/opt/homebrew/bin/nvim'
+alias v='/opt/homebrew/bin/nvim'
 
 # Git repo for my dotfiles:
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
@@ -81,9 +81,6 @@ alias cp='cp -i'
 alias shutdown='sudo shutdown +5s "System shutting down ..."'
 alias reboot='sudo shutdown -r +5s "System rebooting ..."'
 
-# alias s-nail to mailx for convenience
-alias mailx="s-nail"
-
 # alias launch Docker daemon via MacOS app, silently
 alias docker="open -g -a Docker" 
 
@@ -93,14 +90,16 @@ alias zxsp="open -a zxsp"
 # alias run Speccy emulator, zeusarux
 alias zesarux="/Applications/ZEsarUX.app/Contents/MacOS/zesarux"
 
+# alias iterm color schemes
+alias colour-catppuccin="setiterm_theme "catppuccin-mocha""
+alias colour-django-smooth="setiterm_theme "DjangoSmooth""
+alias colour-gruvbox="setiterm_theme "gruvbox-dark""
+alias colour-kanagawa="setiterm_theme "kanagawa""
+alias colour-rose-pine="setiterm_theme "rose-pine""
+alias colour-toykonight="setiterm_theme "toykonight_night""
 
-# alias for iterm color schemes
-alias toykonight="setiterm_theme "toykonight_night""
-alias gruvbox="setiterm_theme "gruvbox-dark""
-alias catppuccin="setiterm_theme "catppuccin-mocha""
-alias kanagawa="setiterm_theme "kanagawa""
-alias rose-pine="setiterm_theme "rose-pine""
-
+# alias to start Jekyll and Tailwind servers for Web and CSS dev. From project root: 
+alias webdev="npm run dev"
 
 # Prevent rm -f from asking for confirmation on things like `rm -f *.bak`.
 setopt rm_star_silent

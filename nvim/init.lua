@@ -166,6 +166,8 @@ end, {
 	desc = "Convert PDF to plain text and open in Neovim",
 })
 
+-- Add your local theme folder to runtimepath
+vim.opt.rtp:append(vim.fn.stdpath("config") .. "/lua/themes/django-smooth")
 -- 🖌️ Sync iTerm2 color preset with Neovim theme
 vim.api.nvim_create_autocmd("ColorScheme", {
 	callback = function()

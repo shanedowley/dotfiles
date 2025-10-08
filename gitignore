@@ -21,3 +21,8 @@ node_modules/
 
 # Log files
 *.log
+
+# Ignore iTerm2 autosave junk
+iterm2/AutoLaunch.plist
+iterm2/DynamicProfiles/
+

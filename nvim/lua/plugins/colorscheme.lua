@@ -38,6 +38,24 @@ return {
 			})
 		end,
 	},
+
+	-- Django Smooth
+	{
+		"rktjmp/lush.nvim", -- dependency for writing Lua colorschemes
+		lazy = true,
+	},
+	{
+		"ShaneDowley/nvim-django-smooth",
+		dir = vim.fn.stdpath("config") .. "/lua/themes/django-smooth",
+		lazy = false,
+		priority = 1000,
+		config = function()
+			vim.opt.termguicolors = true
+			vim.opt.background = "dark"
+			vim.cmd.colorscheme("django-smooth")
+		end,
+	},
+
 	----------------------------------------------------------------------
 	-- 🌸 ROSE-PINE
 	----------------------------------------------------------------------
@@ -93,7 +111,7 @@ return {
 		"nvim-lua/plenary.nvim",
 		lazy = true,
 		config = function()
-			local themes = { "gruvbox", "tokyonight", "catppuccin", "rose-pine", "kanagawa" }
+			local themes = { "django-smooth", "gruvbox", "tokyonight", "catppuccin", "rose-pine", "kanagawa" }
 			local current = 1
 			local save_path = vim.fn.stdpath("data") .. "/last-theme.txt"
 
@@ -165,7 +183,7 @@ return {
 					return " " .. (vim.g.active_theme or "gruvbox")
 				end
 				lualine.setup({
-					options = { theme = vim.g.active_theme or "gruvbox" },
+					options = { theme = "auto" },
 					sections = {
 						lualine_a = { "mode" },
 						lualine_b = { "branch", "diff", "diagnostics" },
