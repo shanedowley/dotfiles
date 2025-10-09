@@ -3,6 +3,11 @@ if vim.loader then
 	vim.loader.enable()
 end
 
+-- Silence vim.tbl_islist deprecation on 0.10+ by delegating to vim.islist
+if vim.tbl_islist and vim.islist then
+	vim.tbl_islist = vim.islist
+end
+
 -- Ensure filetype detection is on
 vim.cmd("filetype plugin indent on")
 
@@ -60,21 +65,11 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 -- Set up Lazy and load plugins
-require("lazy").setup("plugins")
+local plugin_spec = require("plugins")
+require("lazy").setup(plugin_spec)
 
 -- Load Codex local integration
 require("codex").setup()
-
--- Auto-open NvimTree if no file is specified on startup
-vim.api.nvim_create_autocmd("VimEnter", {
-	callback = function()
-		require("nvim-tree.api").tree.open()
-		-- If a file was passed to `nvim`, switch focus to the file window
-		if vim.fn.expand("%") ~= "" then
-			vim.cmd.wincmd("p")
-		end
-	end,
-})
 
 -- Soft wrap for coding
 vim.opt.wrap = true -- enable visual wrap
@@ -110,26 +105,6 @@ vim.opt.sidescrolloff = 8 -- same for left/right scrolling
 -- Splits
 vim.opt.splitbelow = true -- horizontal splits open below
 vim.opt.splitright = true -- vertical splits open to the right
-
--- Auto-disable Treesitter highlight for Markdown or TXT files (or for files above 100kB).
-require("nvim-treesitter.configs").setup({
-	highlight = {
-		enable = true,
-		disable = function(lang, buf)
-			-- disable for markdown + plain text
-			if lang == "markdown" or lang == "text" then
-				return true
-			end
-
-			-- disable for very large files
-			local max_filesize = 100 * 1024 -- 100 KB
-			local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
-			if ok and stats and stats.size > max_filesize then
-				return true
-			end
-		end,
-	},
-})
 
 -- Convert PDF -> Plain Text with Poppler (pdftotext)
 vim.api.nvim_create_user_command("PDFtoText", function(opts)

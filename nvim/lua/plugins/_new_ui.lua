@@ -1,28 +1,15 @@
 return {
-	-- Colorscheme
-	{
-		"morhetz/gruvbox",
-		lazy = false,
-		priority = 1000,
-		config = function()
-			vim.cmd("colorscheme gruvbox")
-			vim.cmd("hi Normal guibg=NONE ctermbg=NONE") -- transparent background (optional)
-		end,
-	},
-
-	-- in plugins/ui.lua or a misc plugin file
 	{
 		"karb94/neoscroll.nvim",
 		event = "VeryLazy",
 		config = function()
 			require("neoscroll").setup({
-				-- Smooth, Mac-style behavior
-				easing_function = "sine", -- "sine" | "quadratic" | "cubic"
+				easing_function = "sine",
 				hide_cursor = false,
 				respect_scrolloff = true,
 				stop_eof = true,
 				performance_mode = true,
-				mappings = { -- animate these motions
+				mappings = {
 					"<C-u>",
 					"<C-d>",
 					"<C-b>",
@@ -37,17 +24,15 @@ return {
 		end,
 	},
 
-	-- silence mini.icons warning
 	{ "echasnovski/mini.icons", version = false },
 
-	-- Statusline
 	{
 		"nvim-lualine/lualine.nvim",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
 			require("lualine").setup({
 				options = {
-					theme = "gruvbox",
+					theme = "auto",
 					section_separators = { left = "", right = "" },
 					component_separators = { left = "", right = "" },
 				},
@@ -62,19 +47,20 @@ return {
 			})
 		end,
 	},
+
 	{
 		"NvChad/nvim-colorizer.lua",
 		config = function()
 			require("colorizer").setup({
-				filetypes = { "*" }, -- apply everywhere
+				filetypes = { "*" },
 				user_default_options = {
-					RGB = true, -- #RGB
-					RRGGBB = true, -- #RRGGBB
-					names = true, -- "Blue" or "red"
-					RRGGBBAA = true, -- #RRGGBBAA
-					rgb_fn = true, -- rgb(0,0,0)
-					hsl_fn = true, -- hsl(0, 100%, 50%)
-					css = true, -- enable all CSS features: rgb_fn, hsl_fn, names, etc.
+					RGB = true,
+					RRGGBB = true,
+					names = true,
+					RRGGBBAA = true,
+					rgb_fn = true,
+					hsl_fn = true,
+					css = true,
 					css_fn = true,
 				},
 			})

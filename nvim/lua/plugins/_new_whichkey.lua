@@ -1,11 +1,10 @@
--- ~/.config/nvim/lua/plugins/whichkey.lua
+-- ~/.config/nvim/lua/plugins/_new_whichkey.lua
 return {
 	{
 		"folke/which-key.nvim",
 		event = "VeryLazy",
 
 		init = function()
-			-- Remove stray mappings early (if they exist)
 			pcall(vim.keymap.del, "n", "<leader>B")
 			for _, lhs in ipairs({ "<leader>+", "<leader>-", "<leader><", "<leader>>" }) do
 				pcall(vim.keymap.del, "n", lhs)
@@ -31,9 +30,7 @@ return {
 				g = true,
 			},
 
-			-- Final gate: hide phantom resize items no matter who registered them
 			filter = function(m)
-				-- only care about the <leader> root
 				if m and m.prefix and m.prefix ~= "<leader>" then
 					return true
 				end
@@ -49,7 +46,6 @@ return {
 				local k = norm(m and m.keys)
 				local label = ((m and (m.desc or m.name)) or ""):lower()
 
-				-- hide by exact key
 				if k == "<C-w>+" or k == "<C-w>-" or k == "<C-w><" or k == "<C-w>>" then
 					return false
 				end
@@ -57,7 +53,6 @@ return {
 					return false
 				end
 
-				-- hide by label (in case some plugin only registered a description)
 				if
 					label:find("shrink pane width", 1, true)
 					or label:find("grow pane width", 1, true)
@@ -76,7 +71,6 @@ return {
 			show_keys = true,
 			icons = { mappings = false },
 
-			-- only trigger which-key for <leader>
 			triggers = {
 				{ "<leader>", mode = "n" },
 				{ "<leader>", mode = "v" },
@@ -130,14 +124,14 @@ return {
 				{ "<leader>w<", "<cmd>resize -3<CR>", desc = "Decrease height (-3)" },
 
 				----------------------------------------------------------------------
-				-- GIT (via gitsigns)
+				-- GIT
 				----------------------------------------------------------------------
 				{ "<leader>g", group = "+git" },
 				{ "<leader>gb", "<cmd>Gitsigns blame_line<CR>", desc = "Blame line" },
 				{ "<leader>gB", "<cmd>Git blame<CR>", desc = "Git: blame (split)" },
 				{ "<leader>gd", "<cmd>Gitsigns diffthis<CR>", desc = "Diff file" },
 				{ "<leader>gg", "<cmd>Git<CR>", desc = "Git: status (Fugitive)" },
-				{ "<leader>gl", "<cmd>!lazygit<CR>", desc = "Git: Lazygit (iTerm2 tab in repo root)" },
+				{ "<leader>gl", "<cmd>LazyGitIterm<CR>", desc = "Git: Lazygit (iTerm2 tab)" },
 				{ "<leader>gn", "<cmd>Gitsigns next_hunk<CR>", desc = "Next hunk" },
 				{ "<leader>gN", "<cmd>Gitsigns prev_hunk<CR>", desc = "Prev hunk" },
 				{ "<leader>gr", "<cmd>Gitsigns reset_hunk<CR>", desc = "Reset hunk" },
@@ -156,6 +150,12 @@ return {
 					end,
 					desc = "Preview hunk",
 				},
+
+				----------------------------------------------------------------------
+				-- UI
+				----------------------------------------------------------------------
+				{ "<leader>u", group = "+ui" },
+				{ "<leader>ut", desc = "Switch color scheme" },
 
 				----------------------------------------------------------------------
 				-- LSP
@@ -244,12 +244,9 @@ return {
 				----------------------------------------------------------------------
 				-- CODEX
 				----------------------------------------------------------------------
-				{
-					"<leader>c",
-					group = "+codex",
-				},
-				{ "<leader>cf", "<cmd>CodexRunFile<CR>", desc = "Run on entire file" },
-				{ "<leader>cl", "<cmd>CodexRunLine<CR>", desc = "Run on current line" },
+				{ "<leader>c", group = "+codex" },
+				{ "<leader>cf", desc = "Run on entire file" },
+				{ "<leader>cl", desc = "Run on current line" },
 				{ "<leader>cc", desc = "Run on selection" },
 				{ "<leader>cp", desc = "Patch file (diff)" },
 				{ "<leader>cs", desc = "Scratchpad prompt" },
@@ -259,6 +256,7 @@ return {
 				----------------------------------------------------------------------
 				{ "<leader>d", group = "+debug" },
 				{ "<leader>db", "<cmd>DapToggleBreakpoint<CR>", desc = "Toggle breakpoint" },
+				{ "<leader>dB", "<cmd>lua require('dap').set_breakpoint(vim.fn.input('Breakpoint condition: '))<CR>", desc = "Conditional breakpoint" },
 				{ "<leader>dc", "<cmd>DapContinue<CR>", desc = "Continue" },
 				{ "<leader>do", "<cmd>DapStepOver<CR>", desc = "Step over" },
 				{ "<leader>di", "<cmd>DapStepInto<CR>", desc = "Step into" },
@@ -271,6 +269,13 @@ return {
 						return pcall(require, "dap")
 					end,
 				},
+				{ "<leader>dx", "<cmd>lua require('dap').terminate()<CR>", desc = "Terminate" },
+				{ "<leader>dl", "<cmd>lua require('dap').run_last()<CR>", desc = "Run last" },
+				{ "<leader>dh", "<cmd>lua require('dap.ui.widgets').hover()<CR>", desc = "Hover variables" },
+				{ "<leader>dp", "<cmd>lua require('dap.ui.widgets').preview()<CR>", desc = "Preview variable" },
+				{ "<leader>df", "<cmd>lua local w=require('dap.ui.widgets');w.centered_float(w.frames)<CR>", desc = "Show frames" },
+				{ "<leader>ds", "<cmd>lua local w=require('dap.ui.widgets');w.centered_float(w.scopes)<CR>", desc = "Show scopes" },
+				{ "<leader>de", "<cmd>lua require('dapui').eval()<CR>", desc = "Eval expression" },
 				{
 					"<leader>du",
 					function()
@@ -361,63 +366,43 @@ return {
 					end,
 					desc = "Load session",
 				},
+				{
+					"<leader>qd",
+					function()
+						if package.loaded["persisted"] then
+							require("persisted").stop()
+						else
+							vim.notify("Persistence.nvim not active", vim.log.levels.INFO)
+						end
+					end,
+					desc = "Disable persistence",
+				},
+				{
+					"<leader>qq",
+					function()
+						vim.cmd("wall")
+						if package.loaded["persisted"] then
+							require("persisted").save()
+						end
+						vim.cmd("qa")
+					end,
+					desc = "Quit and save session",
+				},
 
 				----------------------------------------------------------------------
 				-- HOP
 				----------------------------------------------------------------------
-				{
-					"<leader>h",
-					group = "+hop",
-					cond = function()
-						return pcall(require, "hop")
-					end,
-				},
-				{
-					"<leader>hw",
-					"<cmd>HopWord<CR>",
-					desc = "Hop word",
-					cond = function()
-						return pcall(require, "hop")
-					end,
-				},
-				{
-					"<leader>hc",
-					"<cmd>HopChar1<CR>",
-					desc = "Hop char",
-					cond = function()
-						return pcall(require, "hop")
-					end,
-				},
-				{
-					"<leader>hl",
-					"<cmd>HopLine<CR>",
-					desc = "Hop line",
-					cond = function()
-						return pcall(require, "hop")
-					end,
-				},
-				{
-					"<leader>hp",
-					"<cmd>HopPattern<CR>",
-					desc = "Hop pattern",
-					cond = function()
-						return pcall(require, "hop")
-					end,
-				},
-				{
-					"<leader>ha",
-					"<cmd>HopAnywhere<CR>",
-					desc = "Hop anywhere",
-					cond = function()
-						return pcall(require, "hop")
-					end,
-				},
+				{ "<leader>h", group = "+hop", cond = function() return pcall(require, "hop") end },
+				{ "<leader>hw", "<cmd>HopWord<CR>", desc = "Hop word", cond = function() return pcall(require, "hop") end },
+				{ "<leader>hc", "<cmd>HopChar1<CR>", desc = "Hop char", cond = function() return pcall(require, "hop") end },
+				{ "<leader>hl", "<cmd>HopLine<CR>", desc = "Hop line", cond = function() return pcall(require, "hop") end },
+				{ "<leader>hp", "<cmd>HopPattern<CR>", desc = "Hop pattern", cond = function() return pcall(require, "hop") end },
+				{ "<leader>ha", "<cmd>HopAnywhere<CR>", desc = "Hop anywhere", cond = function() return pcall(require, "hop") end },
 
 				----------------------------------------------------------------------
 				-- LaTeX (VimTeX)
 				----------------------------------------------------------------------
-				{ "<leader>x", group = "+latex" }, -- always register the group
-
+				{ "<leader>x", group = "+latex" },
 				{
 					"<leader>xc",
 					"<cmd>VimtexCompile<CR>",
@@ -460,7 +445,7 @@ return {
 						if vim.o.makeprg ~= "" then
 							vim.cmd("make")
 						else
-							vim.notify("No makeprg set (:set makeprg=...)", vim.log.levels.WARN)
+							vim.notify("No :make program configured", vim.log.levels.WARN)
 						end
 					end,
 					desc = "Run :make",
@@ -468,23 +453,9 @@ return {
 				{ "<leader>rl", "<cmd>make!<CR>", desc = "Run :make (silent)" },
 
 				----------------------------------------------------------------------
-				-- SURROUND (convenience keymaps under <leader>m)
-				-- These call nvim-surround motions for common cases
+				-- SURROUND
 				----------------------------------------------------------------------
-				----------------------------------------------------------------------
-				-- SURROUND (convenience keymaps under <leader>m)
-				-- Works in normal mode (word under cursor) and visual mode (selection)
-				----------------------------------------------------------------------
-				{
-					"<leader>m",
-					group = "+surround",
-					mode = { "n", "v" },
-					cond = function()
-						return package.loaded["nvim-surround"] ~= nil
-					end,
-				},
-
-				-- Quotes
+				{ "<leader>m", group = "+surround", mode = { "n", "v" }, cond = function() return package.loaded["nvim-surround"] ~= nil end },
 				{
 					"<leader>mq",
 					function()
@@ -501,8 +472,6 @@ return {
 					desc = "Surround selection with quotes",
 					mode = "v",
 				},
-
-				-- Single quotes
 				{
 					"<leader>mQ",
 					function()
@@ -519,8 +488,6 @@ return {
 					desc = "Surround selection with single quotes",
 					mode = "v",
 				},
-
-				-- Parentheses ( )
 				{
 					"<leader>mb",
 					function()
@@ -537,8 +504,6 @@ return {
 					desc = "Surround selection with parentheses",
 					mode = "v",
 				},
-
-				-- Braces { }
 				{
 					"<leader>mB",
 					function()
@@ -555,8 +520,6 @@ return {
 					desc = "Surround selection with braces",
 					mode = "v",
 				},
-
-				-- Square brackets [ ]
 				{
 					"<leader>ms",
 					function()
@@ -573,8 +536,6 @@ return {
 					desc = "Surround selection with square brackets",
 					mode = "v",
 				},
-
-				-- Angle brackets < >
 				{
 					"<leader>mt",
 					function()
@@ -591,8 +552,6 @@ return {
 					desc = "Surround selection with angle brackets",
 					mode = "v",
 				},
-
-				-- Backticks `
 				{
 					"<leader>mp",
 					function()
@@ -609,23 +568,19 @@ return {
 					desc = "Surround selection with backticks",
 					mode = "v",
 				},
-				-- DELETE / CHANGE SURROUNDS ----------------------------------------
 				{
 					"<leader>md",
 					desc = "Delete surround",
 					function()
-						-- prompt user for a char, then run ds<char>
 						local char = vim.fn.getcharstr()
 						vim.cmd("normal ds" .. char)
 					end,
 					mode = "n",
 				},
-
 				{
 					"<leader>mc",
 					desc = "Change surround",
 					function()
-						-- prompt user for old and new chars
 						local old = vim.fn.getcharstr()
 						local new = vim.fn.getcharstr()
 						vim.cmd("normal cs" .. old .. new)
@@ -635,10 +590,8 @@ return {
 			},
 		},
 
-		-- 🔎 Add :WKDump for debugging
 		config = function(_, opts)
 			require("which-key").setup(opts)
-
 			vim.api.nvim_create_user_command("WKDump", function()
 				local state = require("which-key.state")
 				vim.cmd("new")
