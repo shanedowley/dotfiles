@@ -1,22 +1,29 @@
+-- ~/.config/nvim/lua/plugins/markdown.lua
 return {
 	{
 		"iamcco/markdown-preview.nvim",
-		ft = { "markdown" }, -- load only for markdown files
-		build = function()
-			vim.fn["mkdp#util#install"]() -- installs the Node.js helper
+		cmd = { "MarkdownPreview", "MarkdownPreviewStop", "MarkdownPreviewToggle" },
+		ft = { "markdown" },
+		build = "cd app && npm install",
+		init = function()
+			vim.g.mkdp_browser = "safari"
+			vim.g.mkdp_auto_close = 1
+			vim.g.mkdp_refresh_slow = 0
 		end,
 		config = function()
-			-- Browser to open preview in (set to "safari", "chrome", or "firefox")
-			vim.g.mkdp_browser = "safari"
-
-			-- Auto-close preview when buffer is closed
-			vim.g.mkdp_auto_close = 1
-
-			-- Refresh preview automatically on save
-			vim.g.mkdp_refresh_slow = 0
-
-			-- Keymap: toggle preview
+			-- keymap
 			vim.keymap.set("n", "<leader>Mp", "<cmd>MarkdownPreviewToggle<CR>", { desc = "Toggle Markdown Preview" })
+
+			-- 🧩 Auto rebuild if plugin gets updated
+			local plugin_path = vim.fn.stdpath("data") .. "/lazy/markdown-preview.nvim"
+			local build_marker = plugin_path .. "/.mkdp_built"
+
+			if vim.fn.filereadable(build_marker) == 0 then
+				vim.fn.jobstart(
+					{ "bash", "-c", "cd " .. plugin_path .. "/app && npm install && touch " .. build_marker },
+					{ detach = true }
+				)
+			end
 		end,
 	},
 }

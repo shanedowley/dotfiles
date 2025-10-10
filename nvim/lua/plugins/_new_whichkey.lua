@@ -256,7 +256,11 @@ return {
 				----------------------------------------------------------------------
 				{ "<leader>d", group = "+debug" },
 				{ "<leader>db", "<cmd>DapToggleBreakpoint<CR>", desc = "Toggle breakpoint" },
-				{ "<leader>dB", "<cmd>lua require('dap').set_breakpoint(vim.fn.input('Breakpoint condition: '))<CR>", desc = "Conditional breakpoint" },
+				{
+					"<leader>dB",
+					"<cmd>lua require('dap').set_breakpoint(vim.fn.input('Breakpoint condition: '))<CR>",
+					desc = "Conditional breakpoint",
+				},
 				{ "<leader>dc", "<cmd>DapContinue<CR>", desc = "Continue" },
 				{ "<leader>do", "<cmd>DapStepOver<CR>", desc = "Step over" },
 				{ "<leader>di", "<cmd>DapStepInto<CR>", desc = "Step into" },
@@ -273,8 +277,16 @@ return {
 				{ "<leader>dl", "<cmd>lua require('dap').run_last()<CR>", desc = "Run last" },
 				{ "<leader>dh", "<cmd>lua require('dap.ui.widgets').hover()<CR>", desc = "Hover variables" },
 				{ "<leader>dp", "<cmd>lua require('dap.ui.widgets').preview()<CR>", desc = "Preview variable" },
-				{ "<leader>df", "<cmd>lua local w=require('dap.ui.widgets');w.centered_float(w.frames)<CR>", desc = "Show frames" },
-				{ "<leader>ds", "<cmd>lua local w=require('dap.ui.widgets');w.centered_float(w.scopes)<CR>", desc = "Show scopes" },
+				{
+					"<leader>df",
+					"<cmd>lua local w=require('dap.ui.widgets');w.centered_float(w.frames)<CR>",
+					desc = "Show frames",
+				},
+				{
+					"<leader>ds",
+					"<cmd>lua local w=require('dap.ui.widgets');w.centered_float(w.scopes)<CR>",
+					desc = "Show scopes",
+				},
 				{ "<leader>de", "<cmd>lua require('dapui').eval()<CR>", desc = "Eval expression" },
 				{
 					"<leader>du",
@@ -392,12 +404,53 @@ return {
 				----------------------------------------------------------------------
 				-- HOP
 				----------------------------------------------------------------------
-				{ "<leader>h", group = "+hop", cond = function() return pcall(require, "hop") end },
-				{ "<leader>hw", "<cmd>HopWord<CR>", desc = "Hop word", cond = function() return pcall(require, "hop") end },
-				{ "<leader>hc", "<cmd>HopChar1<CR>", desc = "Hop char", cond = function() return pcall(require, "hop") end },
-				{ "<leader>hl", "<cmd>HopLine<CR>", desc = "Hop line", cond = function() return pcall(require, "hop") end },
-				{ "<leader>hp", "<cmd>HopPattern<CR>", desc = "Hop pattern", cond = function() return pcall(require, "hop") end },
-				{ "<leader>ha", "<cmd>HopAnywhere<CR>", desc = "Hop anywhere", cond = function() return pcall(require, "hop") end },
+				{
+					"<leader>h",
+					group = "+hop",
+					cond = function()
+						return pcall(require, "hop")
+					end,
+				},
+				{
+					"<leader>hw",
+					"<cmd>HopWord<CR>",
+					desc = "Hop word",
+					cond = function()
+						return pcall(require, "hop")
+					end,
+				},
+				{
+					"<leader>hc",
+					"<cmd>HopChar1<CR>",
+					desc = "Hop char",
+					cond = function()
+						return pcall(require, "hop")
+					end,
+				},
+				{
+					"<leader>hl",
+					"<cmd>HopLine<CR>",
+					desc = "Hop line",
+					cond = function()
+						return pcall(require, "hop")
+					end,
+				},
+				{
+					"<leader>hp",
+					"<cmd>HopPattern<CR>",
+					desc = "Hop pattern",
+					cond = function()
+						return pcall(require, "hop")
+					end,
+				},
+				{
+					"<leader>ha",
+					"<cmd>HopAnywhere<CR>",
+					desc = "Hop anywhere",
+					cond = function()
+						return pcall(require, "hop")
+					end,
+				},
 
 				----------------------------------------------------------------------
 				-- LaTeX (VimTeX)
@@ -436,6 +489,59 @@ return {
 				},
 
 				----------------------------------------------------------------------
+				-- MARKDOWN
+				----------------------------------------------------------------------
+				{ "<leader>M", group = "+markdown" },
+				{
+					"<leader>Mp",
+					"<cmd>MarkdownPreviewToggle<CR>",
+					desc = "Toggle Preview",
+					cond = function()
+						return vim.bo.filetype == "markdown"
+					end,
+				},
+				{
+					"<leader>Ms",
+					"<cmd>MarkdownPreviewStop<CR>",
+					desc = "Stop preview",
+					cond = function()
+						return vim.bo.filetype == "markdown"
+					end,
+				},
+
+				----------------------------------------------------------------------
+				-- PDF TOOLS
+				----------------------------------------------------------------------
+				{ "<leader>P", group = "+pdf" },
+				{
+					"<leader>Pc",
+					function()
+						local texfile = vim.fn.expand("%:p")
+						vim.fn.jobstart({ "pdflatex", texfile }, { detach = true })
+						vim.notify("Compiling PDF with pdflatex…", vim.log.levels.INFO)
+					end,
+					desc = "Compile with pdflatex",
+					cond = function()
+						return vim.bo.filetype == "tex"
+					end,
+				},
+				{
+					"<leader>Po",
+					function()
+						local pdffile = vim.fn.expand("%:p:r") .. ".pdf"
+						if vim.fn.filereadable(pdffile) == 0 then
+							vim.notify("PDF not found. Compile first (<leader>Pc).", vim.log.levels.WARN)
+							return
+						end
+						vim.fn.jobstart({ "open", pdffile }, { detach = true })
+						vim.notify("Opening PDF in default viewer…", vim.log.levels.INFO)
+					end,
+					desc = "Open in default viewer",
+					cond = function()
+						return vim.bo.filetype == "tex"
+					end,
+				},
+				----------------------------------------------------------------------
 				-- RUN
 				----------------------------------------------------------------------
 				{ "<leader>r", group = "+run" },
@@ -455,7 +561,14 @@ return {
 				----------------------------------------------------------------------
 				-- SURROUND
 				----------------------------------------------------------------------
-				{ "<leader>m", group = "+surround", mode = { "n", "v" }, cond = function() return package.loaded["nvim-surround"] ~= nil end },
+				{
+					"<leader>m",
+					group = "+surround",
+					mode = { "n", "v" },
+					cond = function()
+						return package.loaded["nvim-surround"] ~= nil
+					end,
+				},
 				{
 					"<leader>mq",
 					function()

@@ -169,3 +169,39 @@ do
 		end, "DAP: Toggle UI")
 	end
 end
+
+-----------------------------------------------------------
+-- 📝 Markdown, 📄 LaTeX, and 📑 PDF Tools Keymaps
+-----------------------------------------------------------
+
+local map = vim.keymap.set
+local opts = { noremap = true, silent = true }
+
+-- 📝 Markdown -------------------------------------------------------
+map("n", "<leader>Mp", "<cmd>MarkdownPreview<cr>", { desc = "Markdown: Preview in Browser" })
+map("n", "<leader>Ms", "<cmd>MarkdownPreviewStop<cr>", { desc = "Markdown: Stop Preview" })
+
+-- 📄 LaTeX (VimTeX) -------------------------------------------------
+map("n", "<leader>x", "", { desc = "LaTeX (VimTeX)" }) -- group header for which-key
+
+map("n", "<leader>xc", "<cmd>VimtexCompile<cr>", { desc = "LaTeX: Compile (VimTeX)" })
+map("n", "<leader>xv", "<cmd>VimtexView<cr>", { desc = "LaTeX: View PDF (VimTeX)" })
+map("n", "<leader>xp", function()
+	local texfile = vim.fn.expand("%:p")
+	local pdffile = texfile:gsub("%.tex$", ".pdf")
+	vim.fn.jobstart({ "open", "-a", "Preview", pdffile }, { detach = true })
+	print("Opened PDF in Preview.app: " .. pdffile)
+end, { desc = "LaTeX: Open PDF in Preview.app" })
+
+-- 📑 PDF Tools ------------------------------------------------------
+map("n", "<leader>Pc", function()
+	local texfile = vim.fn.expand("%:p")
+	vim.fn.jobstart({ "pdflatex", texfile }, { detach = true })
+	print("Compiling PDF with pdflatex...")
+end, { desc = "PDF: Compile with pdflatex" })
+
+map("n", "<leader>Po", function()
+	local pdffile = vim.fn.expand("%:p:r") .. ".pdf"
+	vim.fn.jobstart({ "open", pdffile }, { detach = true })
+	print("Opening PDF in default viewer: " .. pdffile)
+end, { desc = "PDF: Open in default viewer" })

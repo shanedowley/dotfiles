@@ -23,7 +23,15 @@ return {
 			-- Prefer ruby-lsp if present; otherwise fall back to solargraph
 			vim.lsp.config["ruby_lsp"] = {
 				name = "ruby_lsp",
-				cmd = { "ruby-lsp" }, -- `gem install ruby-lsp`
+				cmd = (function()
+					-- Prefer Bundler if a Gemfile is present in the project
+					local gemfile = vim.fn.findfile("Gemfile", ".;")
+					if gemfile ~= "" then
+						return { "bundle", "exec", "ruby-lsp" }
+					end
+					-- Otherwise fall back to global binary
+					return { "ruby-lsp" }
+				end)(),
 				capabilities = caps,
 				filetypes = { "ruby" },
 				root_dir = root_with({ "Gemfile", ".git" }),
