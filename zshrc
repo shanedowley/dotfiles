@@ -133,7 +133,8 @@ autoload -Uz colors && colors      # enable color support
 setopt PROMPT_SUBST               # allow command substitution in prompt
 
 # Left prompt: current folder + git branch
-PS1=$'\n%F{blue}───%f\n%F{$([ $? -eq 0 ] && echo cyan || echo red)}%2~%f %F{yellow}$(__git_ps1 "(%s)")%f %# '
+PS1=$'\n%F{blue}───%f\n%F{$([ $? -eq 0 ] && echo cyan || echo red)}%2~%f %F{yellow}$(__git_ps1 "(%s)")%f$( [ $EUID -eq 0 ] && echo "#" || echo "$" )'
+
 # Optional: right prompt (show time)
 RPROMPT='%F{magenta}%*%f'
 
