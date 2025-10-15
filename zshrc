@@ -11,15 +11,15 @@ fi
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 export PATH="$HOME/bin:$PATH"
 export EDITOR="/opt/homebrew/bin/nvim"
-export TMP="/Users/shane/tmp"
-export READING="/Users/shane/Desktop/reading, writing and study"
-export DOCUMENTS="/Users/shane/iCloud/Documents"
-export DOWNLOADS="/Users/shane/Downloads"
-export WORK="/Users/shane/iCloud/Documents/Work"
-export ICLOUD="/Users/shane/iCloud"
-export GOOGLE="/Users/shane/Library/CloudStorage/GoogleDrive-shane@betterfasterfurther.com/My Drive"
-export CODING="/Users/shane/Documents/Coding"
-export NEOVIM="/Users/shane/.config/nvim"
+export TMP="$HOME/tmp"
+export READING="$HOME/Desktop/reading, writing and study"
+export DOCUMENTS="$HOME/iCloud/Documents"
+export DOWNLOADS="$HOME/Downloads"
+export WORK="$HOME/iCloud/Documents/Work"
+export ICLOUD="$HOME/iCloud"
+export GOOGLE="$HOME/Library/CloudStorage/GoogleDrive-shane@betterfasterfurther.com/My Drive"
+export CODING="$HOME/Documents/Coding"
+export NEOVIM="$HOME/.config/nvim"
 
 # Path to dotfiles
 export DOTFILES=$HOME/dotfiles
@@ -59,6 +59,7 @@ EOF
 
 # Aliases 
 alias la='ls -la'
+alias coding='cd $CODING/ && echo $PWD'
 
 # To invoke Neovim from the command line
 alias vim='/opt/homebrew/bin/nvim'
@@ -68,8 +69,6 @@ alias v='/opt/homebrew/bin/nvim'
 # Git repo for my dotfiles:
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 alias gs='git status'
-
-# Sync dotfiles repo quickly
 alias sync='cd ~/dotfiles && git add -A && git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main && cd -'
 
 # Avoid accidental deletions
@@ -86,7 +85,6 @@ alias docker="open -g -a Docker"
 
 # alias run Speccy emulator, zxsp
 alias zxsp="open -a zxsp"
-
 # alias run Speccy emulator, zeusarux
 alias zesarux="/Applications/ZEsarUX.app/Contents/MacOS/zesarux"
 
