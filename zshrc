@@ -1,4 +1,9 @@
-PROMPT='%2~ $'
+# PROMPT='%2~ $'
+autoload -Uz colors && colors
+PS1='%F{cyan}%2~%f %F{yellow}$(__git_ps1 "(%s)")%f %# '
+
+export LANG="en_GB.UTF-8"
+export LC_ALL="en_GB.UTF-8"
 
 source ~/codex-aliases.sh
 source ~/.git-prompt.sh
@@ -31,6 +36,13 @@ export NVM_DIR="$HOME/.nvm"
 HISTFILE=${ZDOTDIR:-$HOME}/.zsh_history
 HISTSIZE=4000
 SAVEHIST=2000
+
+# Make history more usable
+setopt HIST_IGNORE_ALL_DUPS   # skip duplicate commands
+setopt HIST_SAVE_NO_DUPS      # don't save duplicates to file
+setopt HIST_REDUCE_BLANKS     # trim extraneous spaces
+setopt HIST_VERIFY            # confirm before executing recalled history
+setopt EXTENDED_HISTORY       # include timestamps
 
 # ---- iTerm2 Theme Control ----
 # Usage: setiterm_theme "Gruvbox Dark" or "Tokyonight Storm"
@@ -66,10 +78,22 @@ alias vim='/opt/homebrew/bin/nvim'
 alias vi='/opt/homebrew/bin/nvim'
 alias v='/opt/homebrew/bin/nvim'
 
+# To invoke Neovide silently and in the background passing a filename arg
+n() {
+  if (( $# == 0 )); then
+    neovide . >/dev/null 2>&1 &
+  else
+    neovide "$@" >/dev/null 2>&1 &
+  fi
+}
+
+# Apply .zshrc changes instandtly
+alias reload='source ~/.zshrc && echo "zsh config reloaded."'
+
 # Git repo for my dotfiles:
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 alias gs='git status'
-alias sync='cd ~/dotfiles && git add -A && git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main && cd -'
+alias sync='cd ~/dotfiles && git add -A && git diff --cached --quiet || git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main && cd -'=
 
 # Avoid accidental deletions
 alias rm='rm -i'
@@ -131,3 +155,4 @@ if [ -f "$HOME/codex-aliases.sh" ]; then
 fi
 
 eval "$(rbenv init - zsh)"
+

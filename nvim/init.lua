@@ -19,6 +19,66 @@ vim.g.maplocalleader = " "
 vim.o.timeout = true
 vim.o.timeoutlen = 300 -- 300ms for key sequences
 
+-- ──────────────────────────────────────────────
+-- 🪟 Neovide GUI Configuration (macOS)
+-- ──────────────────────────────────────────────
+if vim.g.neovide then
+	-- Font and UI scaling
+	vim.o.guifont = "FiraCode Nerd Font Mono:h15" -- use any installed font
+	vim.g.neovide_scale_factor = 1.0 -- overall zoom; adjust with Cmd+Plus/Minus
+
+	-- Cursor animations
+	vim.g.neovide_cursor_animation_length = 0.05
+	vim.g.neovide_cursor_trail_size = 0.3
+	vim.g.neovide_cursor_antialiasing = true
+	vim.g.neovide_cursor_vfx_mode = "railgun" -- or "torpedo", "sonicboom", "wireframe"
+
+	-- Transparency and blur
+	vim.g.neovide_opacity = 0.96
+	vim.g.neovide_window_blurred = true
+
+	-- macOS-style keymaps
+	vim.g.neovide_input_macos_option_key_is_meta = "only_left"
+
+	-- Remember size between launches
+	vim.g.neovide_remember_window_size = true
+
+	-- Custom keybindings (optional)
+	vim.keymap.set("n", "<D-s>", ":w<CR>") -- Cmd+S to save
+	vim.keymap.set("v", "<D-c>", '"+y') -- Cmd+C to copy
+	vim.keymap.set("n", "<D-v>", '"+P') -- Cmd+V to paste in normal mode
+	vim.keymap.set("i", "<D-v>", '<ESC>"+Pli') -- Cmd+V in insert mode
+end
+
+-- 🪟 Dynamic Neovide window title (modern method)
+if vim.g.neovide then
+	-- enable Neovim's title reporting
+	vim.o.title = true
+
+	-- function to update the title
+	local function update_title()
+		local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+		local file = vim.fn.expand("%:t")
+		local title
+
+		if file ~= "" then
+			title = string.format("nvim — %s/%s", cwd, file)
+		else
+			title = string.format("nvim — %s", cwd)
+		end
+
+		vim.o.titlestring = title
+	end
+
+	-- run once at startup
+	update_title()
+
+	-- update on file or directory changes
+	vim.api.nvim_create_autocmd({ "BufEnter", "DirChanged" }, {
+		callback = update_title,
+	})
+end
+
 -- UI/UX tweaks
 vim.opt.number = true
 vim.opt.relativenumber = true
