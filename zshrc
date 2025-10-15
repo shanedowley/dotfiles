@@ -1,6 +1,3 @@
-# PROMPT='%2~ $'
-autoload -Uz colors && colors
-PS1='%F{cyan}%2~%f %F{yellow}$(__git_ps1 "(%s)")%f %# '
 
 export LANG="en_GB.UTF-8"
 export LC_ALL="en_GB.UTF-8"
@@ -12,9 +9,7 @@ if [[ "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" == "Dark" ]]; then
 else
     export TERMCS="light"
 fi
-
-export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
-export PATH="$HOME/bin:$PATH"
+export PATH="/opt/homebrew/opt/llvm/bin:/opt/homebrew/opt/ruby/bin:$HOME/.local/share/nvim/mason/bin:$HOME/bin:$PATH"
 export EDITOR="/opt/homebrew/bin/nvim"
 export TMP="$HOME/tmp"
 export READING="$HOME/Desktop/reading, writing and study"
@@ -88,7 +83,7 @@ n() {
 }
 
 # Apply .zshrc changes instandtly
-alias reload='source ~/.zshrc && echo "zsh config reloaded."'
+alias reload='source ~/.zshrc >/dev/null && echo "🔁 zsh config reloaded."'
 
 # Git repo for my dotfiles:
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
@@ -113,12 +108,12 @@ alias zxsp="open -a zxsp"
 alias zesarux="/Applications/ZEsarUX.app/Contents/MacOS/zesarux"
 
 # alias iterm color schemes
-alias colour-catppuccin="setiterm_theme "catppuccin-mocha""
-alias colour-django-smooth="setiterm_theme "DjangoSmooth""
-alias colour-gruvbox="setiterm_theme "gruvbox-dark""
-alias colour-kanagawa="setiterm_theme "kanagawa""
-alias colour-rose-pine="setiterm_theme "rose-pine""
-alias colour-toykonight="setiterm_theme "toykonight_night""
+alias colour-catppuccin='setiterm_theme "catppuccin-mocha"'
+alias colour-django-smooth='setiterm_theme "DjangoSmooth"'
+alias colour-gruvbox='setiterm_theme "gruvbox-dark"'
+alias colour-kanagawa='setiterm_theme "kanagawa"'
+alias colour-rose-pine='setiterm_theme "rose-pine"'
+alias colour-toykonight='setiterm_theme "toykonight_night"'
 
 # alias to start Jekyll and Tailwind servers for Web and CSS dev. From project root: 
 alias webdev="npm run dev"
@@ -127,12 +122,22 @@ alias webdev="npm run dev"
 setopt rm_star_silent
 
 # Git setup for zsh
+ZSH_DISABLE_COMPFIX=true
 autoload -Uz vcs_info
 autoload -Uz compinit && compinit
 precmd_vcs_info() { vcs_info }
 precmd_functions+=( precmd_vcs_info )
-setopt PROMPT_SUBST ; PS1='[%n@%m %c$(__git_ps1 " (%s)")]\$ '
-RPROMPT='${vcs_info_msg_0_}'
+
+# --- Prompt setup ---
+autoload -Uz colors && colors      # enable color support
+setopt PROMPT_SUBST               # allow command substitution in prompt
+
+# Left prompt: current folder + git branch
+PS1=$'\n%F{blue}───%f\n%F{$([ $? -eq 0 ] && echo cyan || echo red)}%2~%f %F{yellow}$(__git_ps1 "(%s)")%f %# '
+# Optional: right prompt (show time)
+RPROMPT='%F{magenta}%*%f'
+
+# Format git branch name via git-prompt.sh
 zstyle ':vcs_info:git:*' formats '%b'
 
 # Development env variables
@@ -140,14 +145,6 @@ zstyle ':vcs_info:git:*' formats '%b'
 # LLVM + Ruby libs/includes (merged instead of overwritten)
 export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/ruby/lib"
 export CPPFLAGS="-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/ruby/include"
-
-# PATHs
-export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
-export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
-export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
-
-# Custom project dir
-export DPROJECTS="$HOME/Documents/Coding/dlang/projects"
 
 # Load Codex aliases if available
 if [ -f "$HOME/codex-aliases.sh" ]; then
