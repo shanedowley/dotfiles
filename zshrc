@@ -40,7 +40,7 @@ setopt HIST_VERIFY            # confirm before executing recalled history
 setopt EXTENDED_HISTORY       # include timestamps
 
 # ---- iTerm2 Theme Control ----
-# Usage: setiterm_theme "Gruvbox Dark" or "Tokyonight Storm"
+# Usage: setiterm_theme "gruvbox-dark" or "tokyonight_night"
 setiterm_theme() {
   local preset="$1"
   if [[ -z "$preset" ]]; then
@@ -64,7 +64,7 @@ setiterm_theme() {
 EOF
 }
 
-# Aliases 
+# Aliases
 alias la='ls -la'
 alias coding='cd $CODING/ && echo $PWD'
 
@@ -92,6 +92,7 @@ alias sync='cd ~/dotfiles && git add -A && git diff --cached --quiet || git comm
 
 # Avoid accidental deletions
 alias rm='rm -i'
+alias rmapp='$HOME/bin/mac-clean-uninstall.sh'
 alias mv='mv -i'
 alias cp='cp -i'
 
@@ -99,24 +100,26 @@ alias cp='cp -i'
 alias shutdown='sudo shutdown +5s "System shutting down ..."'
 alias reboot='sudo shutdown -r +5s "System rebooting ..."'
 
-# alias launch Docker daemon via MacOS app, silently
-alias docker="open -g -a Docker" 
-
-# alias run Speccy emulator, zxsp
+# alias run Speccy emulators, zxsp or ZEsarUX
 alias zxsp="open -a zxsp"
-# alias run Speccy emulator, zeusarux
 alias zesarux="/Applications/ZEsarUX.app/Contents/MacOS/zesarux"
 
 # alias iterm color schemes
 alias colour-catppuccin='setiterm_theme "catppuccin-mocha"'
 alias colour-django-smooth='setiterm_theme "DjangoSmooth"'
+alias colour-doom-peacock='setiterm_theme "Doom Peacock"'
 alias colour-gruvbox='setiterm_theme "gruvbox-dark"'
 alias colour-kanagawa='setiterm_theme "kanagawa"'
 alias colour-rose-pine='setiterm_theme "rose-pine"'
-alias colour-toykonight='setiterm_theme "toykonight_night"'
+alias colour-tokyonight='setiterm_theme "tokyonight_night"'
 
 # alias to start Jekyll and Tailwind servers for Web and CSS dev. From project root: 
 alias webdev="npm run dev"
+
+# Load Codex aliases if available
+if [ -f "$HOME/codex-aliases.sh" ]; then
+  source "$HOME/codex-aliases.sh"
+fi
 
 # Prevent rm -f from asking for confirmation on things like `rm -f *.bak`.
 setopt rm_star_silent
@@ -133,7 +136,7 @@ autoload -Uz colors && colors      # enable color support
 setopt PROMPT_SUBST               # allow command substitution in prompt
 
 # Left prompt: current folder + git branch
-PS1=$'\n%F{blue}───%f\n%F{$([ $? -eq 0 ] && echo cyan || echo red)}%2~%f %F{yellow}$(__git_ps1 "(%s)")%f$( [ $EUID -eq 0 ] && echo "#" || echo "$" )'
+PS1=$'\n%F{blue}───%f\n[%F{$([ $? -eq 0 ] && echo cyan || echo red)}%2~%f%F{yellow}$(git rev-parse --abbrev-ref HEAD >/dev/null 2>&1 && __git_ps1 " (%s)" || echo "")%f]$( [ $EUID -eq 0 ] && echo "#" || echo "$" ) '
 
 # Optional: right prompt (show time)
 RPROMPT='%F{magenta}%*%f'
@@ -142,15 +145,8 @@ RPROMPT='%F{magenta}%*%f'
 zstyle ':vcs_info:git:*' formats '%b'
 
 # Development env variables
-
 # LLVM + Ruby libs/includes (merged instead of overwritten)
 export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/ruby/lib"
 export CPPFLAGS="-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/ruby/include"
 
-# Load Codex aliases if available
-if [ -f "$HOME/codex-aliases.sh" ]; then
-  source "$HOME/codex-aliases.sh"
-fi
-
 eval "$(rbenv init - zsh)"
-

@@ -262,3 +262,13 @@ end, {
 	complete = "file",
 	desc = "Convert PDF to Markdown and open in Neovim",
 })
+
+-- Custom user commands
+vim.api.nvim_create_user_command("RmApp", function()
+	vim.cmd("terminal rm-app")
+end, {
+	desc = "Safely uninstall a macOS app with logs",
+})
+
+-- Keymap for RmApp command
+vim.keymap.set("n", "<leader>ua", ":RmApp<CR>", { desc = "Uninstall macOS app" })
