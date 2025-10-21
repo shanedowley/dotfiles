@@ -65,8 +65,11 @@ EOF
 }
 
 # Aliases
+#
+# Quality of life items
 alias la='ls -la'
 alias coding='cd $CODING/ && echo $PWD'
+alias deadcells='/Applications/Dead Cells/deadcells &'
 
 # To invoke Neovim from the command line
 alias vim='/opt/homebrew/bin/nvim'
@@ -100,11 +103,11 @@ alias cp='cp -i'
 alias shutdown='sudo shutdown +5s "System shutting down ..."'
 alias reboot='sudo shutdown -r +5s "System rebooting ..."'
 
-# alias run Speccy emulators, zxsp or ZEsarUX
+# Run Speccy emulators, zxsp or ZEsarUX
 alias zxsp="open -a zxsp"
 alias zesarux="/Applications/ZEsarUX.app/Contents/MacOS/zesarux"
 
-# alias iterm color schemes
+# iterm color schemes
 alias colour-catppuccin='setiterm_theme "catppuccin-mocha"'
 alias colour-django-smooth='setiterm_theme "DjangoSmooth"'
 alias colour-doom-peacock='setiterm_theme "Doom Peacock"'
@@ -113,13 +116,16 @@ alias colour-kanagawa='setiterm_theme "kanagawa"'
 alias colour-rose-pine='setiterm_theme "rose-pine"'
 alias colour-tokyonight='setiterm_theme "tokyonight_night"'
 
-# alias to start Jekyll and Tailwind servers for Web and CSS dev. From project root: 
+# Start Jekyll and Tailwind servers for Web and CSS dev. From project root: 
 alias webdev="npm run dev"
 
 # Load Codex aliases if available
 if [ -f "$HOME/codex-aliases.sh" ]; then
   source "$HOME/codex-aliases.sh"
 fi
+
+# Use Homebrew's clang to build and macOS SDK to link
+alias clangsys='clang -target arm64-apple-macos -isysroot $(xcrun --show-sdk-path)'
 
 # Prevent rm -f from asking for confirmation on things like `rm -f *.bak`.
 setopt rm_star_silent

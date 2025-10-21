@@ -23,7 +23,6 @@ return {
 				},
 			},
 		},
-
 		config = function()
 			local dap = require("dap")
 			dap.set_log_level("TRACE")
@@ -37,17 +36,19 @@ return {
 					enabled = true,
 					element = "repl",
 					icons = {
-						pause = "⏸️ ",
-						play = "▶️ ",
-						step_into = "↳ ",
-						step_over = "⤼ ",
-						step_out = "⤴ ",
-						step_back = "⏮️ ",
-						run_last = "🔁 ",
-						terminate = "⏹️ ",
+						pause = "",
+						play = "",
+						step_into = "",
+						step_over = "",
+						step_out = "",
+						step_back = "",
+						run_last = "↻",
+						terminate = "□",
 					},
 				},
-				floating = { border = "rounded" },
+				floating = {
+					border = "rounded",
+				},
 			})
 
 			require("nvim-dap-virtual-text").setup({
@@ -73,6 +74,7 @@ return {
 				opts.desc = desc
 				opts.silent = opts.silent ~= false
 				opts.noremap = opts.noremap ~= false
+
 				if vim.fn.mapcheck(lhs, mode) ~= "" then
 					return
 				end
@@ -93,10 +95,12 @@ return {
 				dapui.eval()
 			end, "DAP: Eval selection")
 			map("n", "<leader>df", function()
-				require("dap.ui.widgets").centered_float(require("dap.ui.widgets").frames)
+				local widgets = require("dap.ui.widgets")
+				widgets.centered_float(widgets.frames)
 			end, "DAP: Show frames")
 			map("n", "<leader>ds", function()
-				require("dap.ui.widgets").centered_float(require("dap.ui.widgets").scopes)
+				local widgets = require("dap.ui.widgets")
+				widgets.centered_float(widgets.scopes)
 			end, "DAP: Show scopes")
 			map("n", "<leader>du", function()
 				dapui.toggle()
@@ -107,6 +111,7 @@ return {
 			-- ----------------------------
 			local ok_js, dap_vscode = pcall(require, "dap-vscode-js")
 			if ok_js then
+				-- Prefer Mason-installed debugger; fall back to Lazy clone if present.
 				local debugger_path = nil
 				local mason_path = vim.fn.stdpath("data") .. "/mason/packages/js-debug-adapter"
 				if vim.fn.isdirectory(mason_path) == 1 then
@@ -133,14 +138,8 @@ return {
 					table.insert(dap.configurations[ft], cfg)
 				end
 
-				local js_languages = {
-					"javascript",
-					"typescript",
-					"javascriptreact",
-					"typescriptreact",
-					"vue",
-					"svelte",
-				}
+				local js_languages =
+					{ "javascript", "typescript", "javascriptreact", "typescriptreact", "vue", "svelte" }
 
 				for _, ft in ipairs(js_languages) do
 					ensure(ft, {
@@ -152,6 +151,7 @@ return {
 						runtimeExecutable = "node",
 						console = "integratedTerminal",
 					})
+
 					ensure(ft, {
 						name = "Node: Attach",
 						type = "pwa-node",
@@ -160,12 +160,8 @@ return {
 						cwd = "${workspaceFolder}",
 					})
 				end
-				for _, ft in ipairs({
-					"javascript",
-					"typescript",
-					"javascriptreact",
-					"typescriptreact",
-				}) do
+
+				for _, ft in ipairs({ "javascript", "typescript", "javascriptreact", "typescriptreact" }) do
 					ensure(ft, {
 						name = "Chrome: Attach to localhost",
 						type = "pwa-chrome",
@@ -177,7 +173,7 @@ return {
 			end
 
 			-- ----------------------------
-			-- C / C++ / ARM64 Assembly (lldb-dap)
+			-- C / C++ (lldb-dap)
 			-- ----------------------------
 			local lldb = vim.fn.exepath("lldb-dap")
 			if lldb == "" then
@@ -188,7 +184,7 @@ return {
 				dap.adapters.cpp = {
 					type = "executable",
 					command = "/opt/homebrew/opt/llvm/bin/lldb-dap",
-					args = { "--" },
+					args = { "--" }, -- forces DAP server mode
 					name = "cpp",
 					attach = { pidProperty = "pid", pidSelect = "ask" },
 				}
@@ -219,26 +215,31 @@ return {
 				end
 
 				-- ARM64 assembly (uses same LLDB adapter as C/C++).
-				dap.configurations.asm = dap.configurations.asm or {}
-				table.insert(dap.configurations.asm, {
-					name = "Debug ARM64 Assembly",
-					type = "cpp",
-					request = "launch",
-					program = function()
-						local default = vim.fn.expand("%:p:r")
-						return vim.fn.input("Path to ARM64 executable: ", default, "file")
-					end,
-					cwd = "${workspaceFolder}",
-					stopOnEntry = true,
-					initCommands = {
-						"settings set target.run-args ''",
-						"settings set target.process.stop-on-sharedlibrary-loads false",
-						"settings set target.skip-prologue true",
-						"breakpoint set --name _main",
-					},
-				})
+                -- ARM64 assembly (uses same LLDB adapter as C/C++).
+dap.configurations.asm = dap.configurations.asm or {}
 
-				-- Auto-detect .s / .S files
+table.insert(dap.configurations.asm, {
+  name = "Debug ARM64 Assembly",
+  type = "cpp",
+  request = "launch",
+
+  -- Prompt user dynamically for the executable path (built from .s file)
+  program = function()
+    local default = vim.fn.getcwd() .. "/"
+    return vim.fn.input("Path to ARM64 executable: ", default, "file")
+  end,
+
+  cwd = "${workspaceFolder}",
+  stopOnEntry = true,
+
+  -- Optional LLDB init tweaks for smoother startup
+  initCommands = {
+    "settings set target.process.stop-on-sharedlibrary-loads false",
+    "settings set target.skip-prologue true",
+  },
+					})
+				end
+				-- Ensure .s / .S files trigger the asm config.
 				vim.api.nvim_create_autocmd("FileType", {
 					pattern = { "asm", "arm64asm", "gas" },
 					callback = function()
@@ -246,39 +247,20 @@ return {
 					end,
 				})
 			else
-				vim.notify(
-					"lldb-dap not found in PATH; C/C++ debugging disabled",
-					vim.log.levels.WARN,
-					{ title = "nvim-dap" }
-				)
-			end
-
-			-- ---------------------------------------
-			-- Build & Debug commands for any .s file
-			-- ---------------------------------------
-			vim.api.nvim_create_user_command("DebugAsm", function()
-				local output = vim.fn.expand("%:p:r") .. ".out"
-				vim.cmd("!clang -target arm64-apple-macos -isysroot $(xcrun --show-sdk-path) -o " .. output .. " %")
-				require("dap").run({
-					name = "Debug ARM64 Assembly",
-					type = "cpp",
-					request = "launch",
-					program = output,
-					cwd = vim.fn.getcwd(),
-					stopOnEntry = true,
-					initCommands = {
-						"settings set target.process.stop-on-sharedlibrary-loads false",
-						"settings set target.skip-prologue true",
-						"breakpoint set --name _main",
-					},
+				vim.notify("lldb-dap not found in PATH; C/C++ debugging disabled", vim.log.levels.WARN, {
+					title = "nvim-dap",
 				})
-			end, { desc = "Assemble & Debug current ARM64 source" })
+			end
+        vim.api.nvim_create_user_command("BuildAsm", function()
+  local file = vim.fn.expand("%:p")          -- full path to current .s file
+  local output = vim.fn.expand("%:p:r")      -- same name, no extension
+  vim.cmd("!" ..
+    "clang -target arm64-apple-macos " ..
+    "-isysroot $(xcrun --show-sdk-path) " ..
+    "-o " .. output .. " " .. file)
+end, { desc = "Assemble current ARM64 source" })
 
-			vim.keymap.set("n", "<leader>ad", ":DebugAsm<CR>", { desc = "Build & Debug ARM64 Assembly" })
-
-			vim.keymap.set("n", "<leader>ar", function()
-				require("dap").run_last()
-			end, { desc = "Rerun last ARM64 Debug" })
+vim.keymap.set("n", "<leader>ab", ":BuildAsm<CR>", { desc = "Build ARM64 Assembly" })
 		end,
 	},
 }
