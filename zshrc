@@ -69,7 +69,6 @@ EOF
 # Quality of life items
 alias la='ls -la'
 alias coding='cd $CODING/ && echo $PWD'
-alias deadcells='/Applications/Dead Cells/deadcells &'
 
 # To invoke Neovim from the command line
 alias vim='/opt/homebrew/bin/nvim'
@@ -104,8 +103,12 @@ alias shutdown='sudo shutdown +5s "System shutting down ..."'
 alias reboot='sudo shutdown -r +5s "System rebooting ..."'
 
 # Run Speccy emulators, zxsp or ZEsarUX
-alias zxsp="open -a zxsp"
-alias zesarux="/Applications/ZEsarUX.app/Contents/MacOS/zesarux"
+alias zxsp='open -a zxsp'
+alias zesarux='/Applications/ZEsarUX.app/Contents/MacOS/zesarux'
+
+# Gaming :) 
+alias doom='$HOME/bin/doom-launcher'
+alias deadcells='/Applications/"Dead Cells"/deadcells &'
 
 # iterm color schemes
 alias colour-catppuccin='setiterm_theme "catppuccin-mocha"'

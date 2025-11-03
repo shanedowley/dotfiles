@@ -1,3 +1,10 @@
+-- ~/.config/nvim/init.lua — Main Neovim configuration
+-- Modular layout:
+--   lua/keymaps.lua        → all keymaps
+--   lua/plugins/*.lua      → plugin specs (Lazy)
+--   lua/commands.lua       → custom user commands (PDF tools, RmApp, etc.)
+--   lua/themes/*           → theme definitions
+
 -- turn on Neovim's module cache
 if vim.loader then
 	vim.loader.enable()
@@ -24,7 +31,7 @@ vim.o.timeoutlen = 300 -- 300ms for key sequences
 -- ──────────────────────────────────────────────
 if vim.g.neovide then
 	-- Font and UI scaling
-	vim.o.guifont = "FiraCode Nerd Font Mono:h15" -- use any installed font
+	vim.o.guifont = "FiraCode Nerd Font Mono:h14" -- use any installed font
 	vim.g.neovide_scale_factor = 1.0 -- overall zoom; adjust with Cmd+Plus/Minus
 
 	-- Cursor animations
@@ -62,9 +69,8 @@ if vim.g.neovide then
 		local title
 
 		if file ~= "" then
-			title = string.format("nvim — %s/%s", cwd, file)
-		else
-			title = string.format("nvim — %s", cwd)
+			local mode = vim.api.nvim_get_mode().mode
+			title = string.format("nvim — %s/%s [%s]", cwd, file, mode)
 		end
 
 		vim.o.titlestring = title
@@ -85,8 +91,8 @@ vim.opt.relativenumber = true
 vim.opt.mouse = "a"
 vim.opt.clipboard = "unnamedplus"
 vim.opt.termguicolors = true
-vim.opt.tabstop = 4
-vim.opt.shiftwidth = 4
+vim.opt.tabstop = 2
+vim.opt.shiftwidth = 2
 vim.opt.expandtab = true
 vim.opt.smartindent = true
 vim.opt.splitbelow = true
@@ -94,11 +100,10 @@ vim.opt.splitright = true
 
 -- Mouse + focus/hover behavior
 vim.opt.mouse = "a" -- enable mouse everywhere
-vim.opt.mousemodel = "extend" -- extend selection with mouse
+vim.opt.mousemodel = "popup" -- popup menu for clicks
 vim.opt.mousehide = true -- hide mouse cursor when typing
 vim.opt.mousemoveevent = true -- send mouse-move events to Neovim
 vim.opt.mousefocus = true -- focus the split under the mouse
-vim.opt.mousemodel = "popup" -- use popup for mouse clicks
 vim.opt.mousescroll = "ver:2,hor:6" -- finer trackpad wheel steps
 vim.opt.scrolloff = 4 -- keep context lines visible
 
@@ -109,6 +114,8 @@ end)
 
 -- ✅ Load keymaps (we will recreate this file next)
 require("keymaps")
+-- ✅ Load custom user commands
+require("commands")
 
 -- Load Lazy.nvim and plugin specs
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -124,9 +131,8 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
--- Set up Lazy and load plugins
-local plugin_spec = require("plugins")
-require("lazy").setup(plugin_spec)
+-- Set up Lazy and load plugins from `lua/plugins/*.lua`
+require("lazy").setup("plugins")
 
 -- Load Codex local integration
 require("codex").setup()
@@ -147,10 +153,6 @@ vim.opt.listchars = {
 vim.opt.cursorline = true
 vim.opt.showmode = false
 
--- Line numbers
-vim.opt.number = true -- absolute line numbers
-vim.opt.relativenumber = true -- relative numbers (good for motions)
-
 -- Sign column (for git/lsp markers)
 vim.opt.signcolumn = "yes" -- always show, avoids text shifting
 
@@ -159,56 +161,17 @@ vim.opt.ignorecase = true -- ignore case when searching...
 vim.opt.smartcase = true -- ...unless search has capitals
 
 -- Scrolling comfort
-vim.opt.scrolloff = 8 -- keep 8 lines visible above/below cursor
 vim.opt.sidescrolloff = 8 -- same for left/right scrolling
-
--- Splits
-vim.opt.splitbelow = true -- horizontal splits open below
-vim.opt.splitright = true -- vertical splits open to the right
-
--- Convert PDF -> Plain Text with Poppler (pdftotext)
-vim.api.nvim_create_user_command("PDFtoText", function(opts)
-	local input = opts.args
-	if input == "" then
-		print("Usage: :PDFtoText <file.pdf>")
-		return
-	end
-
-	-- Expand to absolute path
-	local infile = vim.fn.fnamemodify(input, ":p")
-	if vim.fn.filereadable(infile) == 0 then
-		print("PDFtoText: file not found -> " .. infile)
-		return
-	end
-
-	-- Temporary output file
-	local tmpfile = vim.fn.tempname() .. ".txt"
-
-	-- Run Poppler's pdftotext
-	local cmd = { "pdftotext", infile, tmpfile }
-	local output = vim.fn.system(cmd)
-
-	if vim.v.shell_error ~= 0 then
-		print("PDFtoText: conversion failed -> " .. output)
-		return
-	end
-
-	-- Open converted file in Neovim
-	vim.cmd("edit " .. tmpfile)
-end, {
-	nargs = 1,
-	complete = "file",
-	desc = "Convert PDF to plain text and open in Neovim",
-})
 
 -- Add your local theme folder to runtimepath
 vim.opt.rtp:append(vim.fn.stdpath("config") .. "/lua/themes/django-smooth")
--- 🖌️ Sync iTerm2 color preset with Neovim theme
+
+-- 🖌️ Sync iTerm2 preset with active Neovim colorscheme
+local ui_group = vim.api.nvim_create_augroup("UI_AutoCmds", { clear = true })
 vim.api.nvim_create_autocmd("ColorScheme", {
+	group = ui_group,
 	callback = function()
 		local theme = vim.g.colors_name
-
-		-- Map Neovim theme names to matching iTerm2 preset names
 		local theme_map = {
 			["gruvbox"] = "Gruvbox Dark",
 			["tokyonight"] = "Tokyo Night Storm",
@@ -216,7 +179,6 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 			["rose-pine"] = "Rosé Pine (Main)",
 			["kanagawa"] = "Kanagawa Wave",
 		}
-
 		if theme and #theme > 0 then
 			local preset = theme_map[theme] or theme
 			vim.fn.jobstart({ "setiterm_theme", preset }, { detach = true })
@@ -224,51 +186,3 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 	end,
 	desc = "Sync iTerm2 preset with active Neovim colorscheme",
 })
-
--- Convert PDF -> Markdown using pdftotext + pandoc
-vim.api.nvim_create_user_command("PDFtoMd", function(opts)
-	local input = opts.args
-	if input == "" then
-		print("Usage: :PDFtoMd <file.pdf>")
-		return
-	end
-
-	local infile = vim.fn.fnamemodify(input, ":p")
-	if vim.fn.filereadable(infile) == 0 then
-		print("PDFtoMd: file not found -> " .. infile)
-		return
-	end
-
-	local tmpfile = vim.fn.tempname() .. ".md"
-
-	-- Run pipeline: pdftotext -> pandoc
-	local cmd = string.format(
-		"pdftotext -layout %s - | pandoc -f markdown -t markdown -o %s",
-		vim.fn.shellescape(infile),
-		vim.fn.shellescape(tmpfile)
-	)
-
-	local output = vim.fn.system(cmd)
-
-	if vim.v.shell_error ~= 0 then
-		print("PDFtoMd: conversion failed -> " .. output)
-		return
-	end
-
-	-- Open Markdown in Neovim
-	vim.cmd("edit " .. tmpfile)
-end, {
-	nargs = 1,
-	complete = "file",
-	desc = "Convert PDF to Markdown and open in Neovim",
-})
-
--- Custom user commands
-vim.api.nvim_create_user_command("RmApp", function()
-	vim.cmd("terminal rm-app")
-end, {
-	desc = "Safely uninstall a macOS app with logs",
-})
-
--- Keymap for RmApp command
-vim.keymap.set("n", "<leader>ua", ":RmApp<CR>", { desc = "Uninstall macOS app" })

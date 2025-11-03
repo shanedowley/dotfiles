@@ -78,6 +78,9 @@ return {
 				enable = true,
 				update_root = true,
 			},
+			filesystem_watchers = {
+				enable = false, -- disable fs_event watchers
+			},
 			sync_root_with_cwd = true,
 		})
 	end,

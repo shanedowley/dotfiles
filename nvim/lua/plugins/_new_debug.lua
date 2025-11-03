@@ -179,7 +179,11 @@ return {
 			-- ----------------------------
 			-- C / C++ / ARM64 Assembly (lldb-dap)
 			-- ----------------------------
-			local lldb = vim.fn.exepath("lldb-dap")
+			-- Prefer Mason-installed CodeLLDB, fallback to system lldb-dap.
+			local lldb = vim.fn.stdpath("data") .. "/mason/bin/codelldb"
+			if vim.fn.filereadable(lldb) == 0 then
+				lldb = vim.fn.exepath("lldb-dap")
+			end
 			if lldb == "" then
 				lldb = "/Library/Developer/CommandLineTools/usr/bin/lldb-dap"
 			end
@@ -187,7 +191,7 @@ return {
 			if lldb ~= "" then
 				dap.adapters.cpp = {
 					type = "executable",
-					command = "/opt/homebrew/opt/llvm/bin/lldb-dap",
+					command = lldb,
 					args = { "--" },
 					name = "cpp",
 					attach = { pidProperty = "pid", pidSelect = "ask" },
@@ -208,12 +212,45 @@ return {
 					args = {},
 				}
 
+				dap.configurations.c = dap.configurations.c or {}
 				dap.configurations.cpp = dap.configurations.cpp or {}
+
+				-- Custom debug config for Chocolate Doom binary
+				table.insert(dap.configurations.c, {
+					name = "Debug Chocolate Doom",
+					type = "cpp",
+					request = "launch",
+					program = function()
+						local cwd = vim.fn.getcwd()
+						local root = cwd:gsub("/src/[^/]+$", "") -- strip /src/<subdir> if present
+						return vim.fn.fnamemodify(root .. "/src/chocolate-doom", ":p") -- absolute path
+					end,
+					cwd = "${workspaceFolder}",
+					stopOnEntry = false,
+					args = {
+						"-iwad",
+						vim.fn.expand("$HOME/Library/Application Support/gzdoom/doom.wad"),
+						"-nosound",
+						"-nogui",
+						"-nograph",
+					},
+					initCommands = (function()
+						local cwd = vim.fn.getcwd()
+						local root = cwd:gsub("/src/[^/]+$", "")
+						local exe = vim.fn.fnamemodify(root .. "/src/chocolate-doom", ":p")
+						local dsym = vim.fn.fnamemodify(root .. "/src/chocolate-doom.dSYM", ":p")
+						return {
+							"target create " .. exe,
+							"target symbols add " .. dsym,
+							"breakpoint set --name D_DoomLoop",
+						}
+					end)(),
+				})
+
 				if #dap.configurations.cpp == 0 then
 					table.insert(dap.configurations.cpp, cpp_config)
 				end
 
-				dap.configurations.c = dap.configurations.c or {}
 				if #dap.configurations.c == 0 then
 					table.insert(dap.configurations.c, vim.deepcopy(cpp_config))
 				end
