@@ -109,6 +109,7 @@ alias zesarux='/Applications/ZEsarUX.app/Contents/MacOS/zesarux'
 # Gaming :) 
 alias doom='$HOME/bin/doom-launcher'
 alias deadcells='/Applications/"Dead Cells"/deadcells &'
+alias oolite='/Applications/Oolite.app/Contents/MacOS/Oolite &'
 
 # iterm color schemes
 alias colour-catppuccin='setiterm_theme "catppuccin-mocha"'
