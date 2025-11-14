@@ -69,6 +69,7 @@ EOF
 # Quality of life items
 alias la='ls -la'
 alias coding='cd $CODING/ && echo $PWD'
+alias learning='cd $READING/ && echo $PWD'
 
 # To invoke Neovim from the command line
 alias vim='/opt/homebrew/bin/nvim'
