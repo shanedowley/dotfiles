@@ -186,3 +186,89 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 	end,
 	desc = "Sync iTerm2 preset with active Neovim colorscheme",
 })
+
+--  Wire ToggleTerm into C/C++ workflow
+-- Only run if toggleterm is available
+local ok, toggleterm = pcall(require, "toggleterm")
+if not ok then
+	return
+end
+
+local Terminal = require("toggleterm.terminal").Terminal
+
+-- 1) Compile & run *current* C/C++ file
+local function build_and_run_current_cpp()
+	-- Save the file first
+	vim.cmd("w")
+
+	local file = vim.fn.expand("%:p") -- full path
+	local base = vim.fn.expand("%:t:r") -- filename without extension
+	local dir = vim.fn.expand("%:p:h") -- directory of file
+
+	-- Adjust this to your preferred flags
+	local cmd = string.format(
+		"cd %q && g++ -std=c++20 -O2 %q -o %q && ./%q; echo ''; echo '--- Press any key to close ---'; read -n 1",
+		dir,
+		file,
+		base,
+		base
+	)
+
+	local term = Terminal:new({
+		cmd = cmd,
+		direction = "float",
+		close_on_exit = false,
+	})
+
+	term:toggle()
+end
+
+-- 2) Run `make` (or whatever build command) in project root
+local function build_project_with_make()
+	-- Detect current working dir (usually project root if you opened Neovim there)
+	local cwd = vim.loop.cwd()
+
+	local cmd = string.format("cd %q && make; echo ''; echo '--- Press any key to close ---'; read -n 1", cwd)
+
+	local term = Terminal:new({
+		cmd = cmd,
+		direction = "horizontal",
+		size = 15,
+		close_on_exit = false,
+	})
+
+	term:toggle()
+end
+
+-- Keymaps
+-- Use F5 like a “real IDE” for build & run
+vim.keymap.set("n", "<F5>", build_and_run_current_cpp, { desc = "Build & run current C/C++ file" })
+
+vim.keymap.set("n", "<leader>rb", build_and_run_current_cpp, { desc = "Build & run current C/C++ file" })
+vim.keymap.set("n", "<leader>rm", build_project_with_make, { desc = "Run make in project root" })
+
+-- Highlight curly quotes in Lua config automatically
+local group = vim.api.nvim_create_augroup("HighlightCurlyQuotes", { clear = true })
+
+vim.api.nvim_create_autocmd("BufReadPost", {
+	group = group,
+	pattern = "*.lua",
+	callback = function(args)
+		require("diag.curly_quotes").attach(args.buf)
+	end,
+})
+
+vim.api.nvim_create_user_command("FixCurlyQuotes", function()
+	local subs = {
+		["“"] = '"',
+		["”"] = '"',
+		["‘"] = "'",
+		["’"] = "'",
+	}
+
+	for bad, good in pairs(subs) do
+		vim.cmd("%s/" .. bad .. "/" .. good .. "/g")
+	end
+
+	print("Curly quotes cleaned ✓")
+end, {})

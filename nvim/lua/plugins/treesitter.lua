@@ -10,6 +10,7 @@ return {
 			"c",
 			"cpp",
 			"vim",
+			"rust",
 			"json",
 			"markdown",
 			"markdown_inline",

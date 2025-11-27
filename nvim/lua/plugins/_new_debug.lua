@@ -102,6 +102,18 @@ return {
 				dapui.toggle()
 			end, "DAP: Toggle UI")
 
+			-- ADD this just after the other DAP maps:
+			map("n", "<leader>dQ", function()
+				local ok_dap, dap = pcall(require, "dap")
+				if ok_dap then
+					pcall(dap.terminate)
+				end
+				local ok_ui, dapui = pcall(require, "dapui")
+				if ok_ui then
+					pcall(dapui.close)
+				end
+			end, "DAP: Terminate + close UI")
+
 			-- ----------------------------
 			-- JavaScript / TypeScript via vscode-js-debug
 			-- ----------------------------
@@ -196,7 +208,9 @@ return {
 					name = "cpp",
 					attach = { pidProperty = "pid", pidSelect = "ask" },
 				}
+				-- Aliases so different configs can refer to the same CodeLLDB adapter
 				dap.adapters.lldb = dap.adapters.cpp
+				dap.adapters.codelldb = dap.adapters.cpp
 
 				local function cpp_launch()
 					return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
@@ -214,6 +228,43 @@ return {
 
 				dap.configurations.c = dap.configurations.c or {}
 				dap.configurations.cpp = dap.configurations.cpp or {}
+
+				-- -----------------------------------
+				-- Rust (reuses CodeLLDB "cpp" adapter)
+				-- -----------------------------------
+				dap.configurations.rust = dap.configurations.rust or {}
+
+				table.insert(dap.configurations.rust, {
+					name = "Debug Rust crate (target/debug)",
+					type = "codelldb", -- matches the aliased adapter
+					request = "launch",
+					program = function()
+						-- Try to infer the crate name from Cargo.toml, fall back to folder name
+						local cwd = vim.fn.getcwd()
+						local crate = nil
+						local cargo_toml = cwd .. "/Cargo.toml"
+
+						if vim.fn.filereadable(cargo_toml) == 1 then
+							for _, line in ipairs(vim.fn.readfile(cargo_toml)) do
+								local name = line:match([[^name%s*=%s*"(.*)"]])
+								if name then
+									crate = name
+									break
+								end
+							end
+						end
+
+						if not crate or crate == "" then
+							crate = vim.fn.fnamemodify(cwd, ":t")
+						end
+
+						local default_exe = cwd .. "/target/debug/" .. crate
+						return vim.fn.input("Path to executable: ", default_exe, "file")
+					end,
+					cwd = "${workspaceFolder}",
+					stopOnEntry = false,
+					args = {},
+				})
 
 				-- Custom debug config for Chocolate Doom binary
 				table.insert(dap.configurations.c, {

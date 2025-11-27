@@ -161,3 +161,4 @@ export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/ruby/lib"
 export CPPFLAGS="-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/ruby/include"
 
 eval "$(rbenv init - zsh)"
+export PATH="/opt/homebrew/opt/rustup/bin:$PATH"

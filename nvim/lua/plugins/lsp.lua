@@ -52,6 +52,41 @@ return {
 					vim.lsp.start(cfg)
 				end,
 			})
+			-- =========================
+			-- Rust: rust-analyzer
+			-- =========================
+			vim.lsp.config["rust_analyzer"] = {
+				name = "rust-analyzer",
+				cmd = { "rust-analyzer" },
+				capabilities = caps,
+				filetypes = { "rust" },
+				root_dir = root_with({ "Cargo.toml", "rust-project.json", ".git" }),
+				settings = {
+					["rust-analyzer"] = {
+						cargo = {
+							allFeatures = true,
+						},
+						checkOnSave = {
+							command = "clippy", -- run `cargo clippy` on save
+						},
+					},
+				},
+			}
+
+			-- Auto-start rust-analyzer on Rust files
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = { "rust" },
+				callback = function(ev)
+					-- Avoid duplicates
+					local existing = vim.lsp.get_clients({ bufnr = ev.buf, name = "rust-analyzer" })
+					if #existing > 0 then
+						return
+					end
+					local cfg = vim.tbl_deep_extend("force", {}, vim.lsp.config["rust_analyzer"])
+					cfg.root_dir = cfg.root_dir(vim.api.nvim_buf_get_name(ev.buf))
+					vim.lsp.start(cfg)
+				end,
+			})
 		end,
 	},
 }
