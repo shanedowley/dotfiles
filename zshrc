@@ -65,18 +65,24 @@ EOF
 }
 
 # Aliases
-#
+
 # Quality of life items
 alias la='ls -la'
-alias coding='cd $CODING/ && echo $PWD'
+alias coding='cd $CODING/ && echo $PWD && flashspace workspace --name Coding' 
+alias browsing='flashspace workspace --name Browsing' 
+alias social='flashspace workspace --name Social' 
+alias work='flashspace workspace --name Work' 
 alias learning='cd $READING/ && echo $PWD'
+alias rust-book='safarireader "/Users/shane/.rustup/toolchains/stable-aarch64-apple-darwin/share/doc/rust/html/book/title-page.html"'
+alias reload='source ~/.zshrc >/dev/null && echo "🔁 zsh config reloaded."'
+alias rmapp='$HOME/bin/mac-clean-uninstall.sh'
 
 # To invoke Neovim from the command line
 alias vim='/opt/homebrew/bin/nvim'
 alias vi='/opt/homebrew/bin/nvim'
 alias v='/opt/homebrew/bin/nvim'
 
-# To invoke Neovide silently and in the background passing a filename arg
+# Invoke Neovide silently and in the background passing a filename arg
 n() {
   if (( $# == 0 )); then
     neovide . >/dev/null 2>&1 &
@@ -85,22 +91,18 @@ n() {
   fi
 }
 
-# Apply .zshrc changes instandtly
-alias reload='source ~/.zshrc >/dev/null && echo "🔁 zsh config reloaded."'
-
 # Git repo for my dotfiles:
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 alias gs='git status'
 alias sync='cd ~/dotfiles && git add -A && git diff --cached --quiet || git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main && cd -'
 
-# Avoid accidental deletions
+# Avoid accidental deletions / overwrites
 alias rm='rm -i'
-alias rmapp='$HOME/bin/mac-clean-uninstall.sh'
 alias mv='mv -i'
 alias cp='cp -i'
 
 # Shutdown and Reboot 
-alias shutdown='sudo shutdown +5s "System shutting down ..."'
+alias shutdown='sudo shutdown -h +5s "System shutting down ..."'
 alias reboot='sudo shutdown -r +5s "System rebooting ..."'
 
 # Run Speccy emulators, zxsp or ZEsarUX
