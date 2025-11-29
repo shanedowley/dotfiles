@@ -2,7 +2,7 @@
 export LANG="en_GB.UTF-8"
 export LC_ALL="en_GB.UTF-8"
 
-source ~/codex-aliases.sh
+source ~/bin/codex-aliases.sh
 source ~/.git-prompt.sh
 if [[ "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" == "Dark" ]]; then
     export TERMCS="dark"

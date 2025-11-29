@@ -1,4 +1,4 @@
--- ~/.config/nvim/lua/plugins/_new_whichkey.lua
+-- ~/.config/nvim/lua/plugins/whichkey.lua
 return {
 	{
 		"folke/which-key.nvim",

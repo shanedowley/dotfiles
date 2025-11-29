@@ -8,7 +8,7 @@ local function nmap(lhs, rhs, desc, opts)
 	map("n", lhs, rhs, opts)
 end
 
--- which-key hint scaffolding (kept minimal here; full menu lives in plugins/_new_whichkey.lua)
+-- which-key hint scaffolding (kept minimal here; full menu lives in plugins/whichkey.lua)
 pcall(function()
 	local wk = require("which-key")
 	wk.register({
