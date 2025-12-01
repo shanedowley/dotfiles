@@ -39,6 +39,16 @@ setopt HIST_REDUCE_BLANKS     # trim extraneous spaces
 setopt HIST_VERIFY            # confirm before executing recalled history
 setopt EXTENDED_HISTORY       # include timestamps
 
+# Set iterm2's tab title and cursor
+function set_iterm_title_and_cursor() {
+  # Set iterm2's title to "user: /full/path"
+  echo -ne "\033]0;${USER}: ${PWD}\007"
+
+  # Set iterm2's cursor to underline style on every prompt
+  echo -ne "\e[4 q"
+}
+precmd_functions+=(set_iterm_title_and_cursor)
+
 # ---- iTerm2 Theme Control ----
 # Usage: setiterm_theme "gruvbox-dark" or "tokyonight_night"
 setiterm_theme() {

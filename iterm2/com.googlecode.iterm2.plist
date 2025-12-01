@@ -15,17 +15,17 @@
 	<key>AITermAPI</key>
 	<integer>2</integer>
 	<key>AIVectorStore</key>
-	<integer>1</integer>
+	<integer>0</integer>
 	<key>AIVendor</key>
 	<integer>2</integer>
 	<key>AggressiveFocusFollowsMouse</key>
 	<true/>
 	<key>AiMaxTokens</key>
-	<integer>1000000</integer>
+	<integer>400000</integer>
 	<key>AiModel</key>
-	<string>gpt-4.1</string>
+	<string>gpt-5.1</string>
 	<key>AiResponseMaxTokens</key>
-	<integer>32768</integer>
+	<integer>128000</integer>
 	<key>AitermURL</key>
 	<string>https://api.openai.com/v1/responses</string>
 	<key>AllowClipboardAccess</key>
@@ -2341,6 +2341,8 @@
 			<true/>
 			<key>Ambiguous Double Width</key>
 			<false/>
+			<key>Animate Movement</key>
+			<false/>
 			<key>Ansi 0 Color</key>
 			<dict>
 				<key>Blue Component</key>
@@ -2980,7 +2982,7 @@
 				<real>1</real>
 			</dict>
 			<key>Blinking Cursor</key>
-			<true/>
+			<false/>
 			<key>Blur</key>
 			<false/>
 			<key>Bold Color</key>
@@ -3052,13 +3054,13 @@
 				<key>Alpha Component</key>
 				<real>1</real>
 				<key>Blue Component</key>
-				<real>0.4117647111415863</real>
+				<real>0.5</real>
 				<key>Color Space</key>
-				<string>sRGB</string>
+				<string>P3</string>
 				<key>Green Component</key>
-				<real>0.31764706969261169</real>
+				<real>0.5</real>
 				<key>Red Component</key>
-				<real>0.3333333432674408</real>
+				<real>0.5</real>
 			</dict>
 			<key>Cursor Color (Light)</key>
 			<dict>
@@ -3112,6 +3114,8 @@
 				<key>Red Component</key>
 				<real>0.70213186740875244</real>
 			</dict>
+			<key>Cursor Hidden When Unfocused</key>
+			<true/>
 			<key>Cursor Shadow</key>
 			<false/>
 			<key>Cursor Text Color</key>
@@ -3150,7 +3154,7 @@
 				<real>0.21176472306251526</real>
 			</dict>
 			<key>Cursor Type</key>
-			<integer>1</integer>
+			<integer>0</integer>
 			<key>Custom Command</key>
 			<string>No</string>
 			<key>Custom Directory</key>
@@ -3411,13 +3415,13 @@
 			<key>Send Code When Idle</key>
 			<false/>
 			<key>Shortcut</key>
-			<string></string>
+			<string>T</string>
 			<key>Silence Bell</key>
 			<false/>
 			<key>Smart Cursor Color</key>
 			<false/>
 			<key>Smart Cursor Color (Dark)</key>
-			<false/>
+			<true/>
 			<key>Smart Cursor Color (Light)</key>
 			<false/>
 			<key>Sync Title</key>
@@ -3439,6 +3443,8 @@
 			<array/>
 			<key>Terminal Type</key>
 			<string>xterm-256color</string>
+			<key>Title Components</key>
+			<integer>704</integer>
 			<key>Transparency</key>
 			<real>0.0</real>
 			<key>Unlimited Scrollback</key>

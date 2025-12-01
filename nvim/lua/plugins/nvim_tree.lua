@@ -40,14 +40,23 @@ return {
 				end
 			end,
 		})
-
 		vim.api.nvim_create_autocmd("BufEnter", {
-			group = group,
 			nested = true,
 			callback = function()
-				if #vim.api.nvim_list_wins() == 1 and vim.bo.filetype == "NvimTree" then
-					vim.cmd("quit!")
+				-- Only act if NvimTree is the only window
+				if #vim.api.nvim_list_wins() ~= 1 or vim.bo.filetype ~= "NvimTree" then
+					return
 				end
+
+				-- Check for any modified buffers; if any are modified, do NOT quit
+				for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+					if vim.api.nvim_buf_is_loaded(buf) and vim.api.nvim_buf_get_option(buf, "modified") then
+						return
+					end
+				end
+
+				-- Safe to quit: no modified buffers
+				vim.cmd("quit")
 			end,
 		})
 	end,

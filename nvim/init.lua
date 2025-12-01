@@ -26,6 +26,15 @@ vim.g.maplocalleader = " "
 vim.o.timeout = true
 vim.o.timeoutlen = 300 -- 300ms for key sequences
 
+-- Curor settigns and behaviours
+vim.o.guicursor = table.concat({
+	"n-v:block", -- Normal + Visual = block
+	"i:hor20", -- Insert = horizontal underline (20% height)
+	"i:hor20-blinkwait600-blinkon700-blinkoff600", -- blinking
+	"r-cr:hor20", -- Replace & Command-replace = underline too
+	"c-sm:hor20", -- Command-line & Select-mode = underline
+}, ",")
+
 -- ──────────────────────────────────────────────
 -- 🪟 Neovide GUI Configuration (macOS)
 -- ──────────────────────────────────────────────

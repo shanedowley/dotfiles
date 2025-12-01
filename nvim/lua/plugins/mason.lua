@@ -34,7 +34,6 @@ return {
 					-- Backend
 					"ruby_lsp",
 					"clangd",
-					"tsserver",
 					"lua_ls",
 					"rust_analyzer",
 				},
