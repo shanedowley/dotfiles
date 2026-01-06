@@ -281,3 +281,57 @@ vim.api.nvim_create_user_command("FixCurlyQuotes", function()
 
 	print("Curly quotes cleaned ✓")
 end, {})
+
+---------------------------------------------------------------------------
+-- Auto-format on save for Rust, C/C++, JS/TS, Assembly (LSP-based)
+---------------------------------------------------------------------------
+
+-- One augroup to keep things tidy
+local fmt_group = vim.api.nvim_create_augroup("AutoFormatOnSave", { clear = true })
+
+-- Helper to build LSP format callbacks with an optional client filter
+local function lsp_format_cb(filter_fn)
+	return function()
+		vim.lsp.buf.format({
+			timeout_ms = 2000,
+			filter = filter_fn,
+		})
+	end
+end
+
+-- Rust: use rust-analyzer (rustfmt under the hood)
+vim.api.nvim_create_autocmd("BufWritePre", {
+	group = fmt_group,
+	pattern = "*.rs",
+	callback = lsp_format_cb(function(client)
+		return client.name == "rust_analyzer"
+	end),
+})
+
+-- C / C++: use clangd
+vim.api.nvim_create_autocmd("BufWritePre", {
+	group = fmt_group,
+	pattern = { "*.c", "*.h", "*.cpp", "*.cc", "*.hpp", "*.hh" },
+	callback = lsp_format_cb(function(client)
+		return client.name == "clangd"
+	end),
+})
+
+-- JavaScript / TypeScript: use tsserver or vtsls if present
+vim.api.nvim_create_autocmd("BufWritePre", {
+	group = fmt_group,
+	pattern = { "*.js", "*.jsx", "*.ts", "*.tsx" },
+	callback = lsp_format_cb(function(client)
+		return client.name == "tsserver" or client.name == "vtsls"
+	end),
+})
+
+-- Assembly: try any attached LSP/formatter (no filter)
+-- (safe no-op if nothing supports formatting)
+vim.api.nvim_create_autocmd("BufWritePre", {
+	group = fmt_group,
+	pattern = { "*.s", "*.S", "*.asm" },
+	callback = function()
+		vim.lsp.buf.format({ timeout_ms = 2000 })
+	end,
+})

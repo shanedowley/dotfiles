@@ -13,6 +13,7 @@ export PATH="/opt/homebrew/opt/llvm/bin:/opt/homebrew/opt/ruby/bin:$HOME/.local/
 export EDITOR="/opt/homebrew/bin/nvim"
 export TMP="$HOME/tmp"
 export READING="$HOME/Desktop/reading, writing and study"
+export DESKTOP="$HOME/Desktop"
 export DOCUMENTS="$HOME/iCloud/Documents"
 export DOWNLOADS="$HOME/Downloads"
 export WORK="$HOME/iCloud/Documents/Work"
@@ -78,11 +79,14 @@ EOF
 
 # Quality of life items
 alias la='ls -la'
-alias coding='cd $CODING/ && echo $PWD && flashspace workspace --name Coding' 
-alias browsing='flashspace workspace --name Browsing' 
-alias social='flashspace workspace --name Social' 
-alias work='flashspace workspace --name Work' 
-alias learning='cd $READING/ && echo $PWD'
+alias coding='cd $CODING/ && echo $PWD' 
+alias desktop='cd $DESKTOP/ && echo $PWD' 
+alias docs='cd $DOCUMENTS/ && echo $PWD' 
+alias downloads='cd $DOWNLOADS/ && echo $PWD' 
+alias google='cd $GOOGLE/ && echo $PWD'
+alias icloud='cd $ICLOUD/ && echo $PWD'
+alias reading='cd $READING/ && echo $PWD'
+alias work='cd $WORK/ && echo $PWD'
 alias rust-book='safarireader "/Users/shane/.rustup/toolchains/stable-aarch64-apple-darwin/share/doc/rust/html/book/title-page.html"'
 alias reload='source ~/.zshrc >/dev/null && echo "🔁 zsh config reloaded."'
 alias rmapp='$HOME/bin/mac-clean-uninstall.sh'
@@ -135,6 +139,11 @@ alias colour-tokyonight='setiterm_theme "tokyonight_night"'
 
 # Start Jekyll and Tailwind servers for Web and CSS dev. From project root: 
 alias webdev="npm run dev"
+
+# yabai stuff
+alias ys='yabai &'
+alias yk='pkill yabai'
+alias yr='yabai --restart-service'
 
 # Load Codex aliases if available
 if [ -f "$HOME/codex-aliases.sh" ]; then
