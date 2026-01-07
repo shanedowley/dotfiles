@@ -2330,6 +2330,10 @@
 	<true/>
 	<key>IRMemory</key>
 	<integer>4</integer>
+	<key>NeverWarnAboutShortLivedSessions_235FD00A-FDF6-4130-AF9C-631D8F6F0B12</key>
+	<true/>
+	<key>NeverWarnAboutShortLivedSessions_235FD00A-FDF6-4130-AF9C-631D8F6F0B12_selection</key>
+	<integer>0</integer>
 	<key>NeverWarnAboutShortLivedSessions_32097BC3-A506-405C-ABBF-7ABF8E561401</key>
 	<true/>
 	<key>NeverWarnAboutShortLivedSessions_32097BC3-A506-405C-ABBF-7ABF8E561401_selection</key>
@@ -3216,6 +3220,8 @@
 			<real>1</real>
 			<key>Idle Code</key>
 			<integer>0</integer>
+			<key>Initial Text</key>
+			<string></string>
 			<key>Jobs to Ignore</key>
 			<array>
 				<string>rlogin</string>
@@ -3430,6 +3436,8 @@
 			<string>xterm-256color</string>
 			<key>Title Components</key>
 			<integer>704</integer>
+			<key>Tmux Newline</key>
+			<true/>
 			<key>Transparency</key>
 			<real>0.0</real>
 			<key>Unlimited Scrollback</key>

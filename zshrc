@@ -40,6 +40,8 @@ setopt HIST_REDUCE_BLANKS     # trim extraneous spaces
 setopt HIST_VERIFY            # confirm before executing recalled history
 setopt EXTENDED_HISTORY       # include timestamps
 
+
+# ---- iterm2 Set Up ----
 # Set iterm2's tab title and cursor
 function set_iterm_title_and_cursor() {
   # Set iterm2's title to "user: /full/path"
@@ -75,7 +77,17 @@ setiterm_theme() {
 EOF
 }
 
-# Aliases
+# iterm2 color schemes
+alias colour-catppuccin='setiterm_theme "catppuccin-mocha"'
+alias colour-django-smooth='setiterm_theme "DjangoSmooth"'
+alias colour-doom-peacock='setiterm_theme "Doom Peacock"'
+alias colour-gruvbox='setiterm_theme "gruvbox-dark"'
+alias colour-kanagawa='setiterm_theme "kanagawa"'
+alias colour-rose-pine='setiterm_theme "rose-pine"'
+alias colour-tokyonight='setiterm_theme "tokyonight_night"'
+
+
+# ---- Aliases Set Up ----
 
 # Quality of life items
 alias la='ls -la'
@@ -91,11 +103,17 @@ alias rust-book='safarireader "/Users/shane/.rustup/toolchains/stable-aarch64-ap
 alias reload='source ~/.zshrc >/dev/null && echo "🔁 zsh config reloaded."'
 alias rmapp='$HOME/bin/mac-clean-uninstall.sh'
 
+# Avoid accidental deletions / overwrites
+alias rm='rm -i'
+alias mv='mv -i'
+alias cp='cp -i'
+# Prevent rm -f from asking for confirmation on things like `rm -f *.bak`.
+setopt rm_star_silent
+
 # To invoke Neovim from the command line
 alias vim='/opt/homebrew/bin/nvim'
 alias vi='/opt/homebrew/bin/nvim'
 alias v='/opt/homebrew/bin/nvim'
-
 # Invoke Neovide silently and in the background passing a filename arg
 n() {
   if (( $# == 0 )); then
@@ -104,16 +122,6 @@ n() {
     neovide "$@" >/dev/null 2>&1 &
   fi
 }
-
-# Git repo for my dotfiles:
-alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-alias gs='git status'
-alias sync='cd ~/dotfiles && git add -A && git diff --cached --quiet || git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main && cd -'
-
-# Avoid accidental deletions / overwrites
-alias rm='rm -i'
-alias mv='mv -i'
-alias cp='cp -i'
 
 # Shutdown and Reboot 
 alias shutdown='sudo shutdown -h +5s "System shutting down ..."'
@@ -128,22 +136,8 @@ alias doom='$HOME/bin/doom-launcher'
 alias deadcells='/Applications/"Dead Cells"/deadcells &'
 alias oolite='/Applications/Oolite.app/Contents/MacOS/Oolite &'
 
-# iterm color schemes
-alias colour-catppuccin='setiterm_theme "catppuccin-mocha"'
-alias colour-django-smooth='setiterm_theme "DjangoSmooth"'
-alias colour-doom-peacock='setiterm_theme "Doom Peacock"'
-alias colour-gruvbox='setiterm_theme "gruvbox-dark"'
-alias colour-kanagawa='setiterm_theme "kanagawa"'
-alias colour-rose-pine='setiterm_theme "rose-pine"'
-alias colour-tokyonight='setiterm_theme "tokyonight_night"'
-
 # Start Jekyll and Tailwind servers for Web and CSS dev. From project root: 
 alias webdev="npm run dev"
-
-# yabai stuff
-alias ys='yabai &'
-alias yk='pkill yabai'
-alias yr='yabai --restart-service'
 
 # Load Codex aliases if available
 if [ -f "$HOME/codex-aliases.sh" ]; then
@@ -153,8 +147,16 @@ fi
 # Use Homebrew's clang to build and macOS SDK to link
 alias clangsys='clang -target arm64-apple-macos -isysroot $(xcrun --show-sdk-path)'
 
-# Prevent rm -f from asking for confirmation on things like `rm -f *.bak`.
-setopt rm_star_silent
+# --- Tmux setup ---
+if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ]; then
+  tmux new-session -A -s main
+fi
+
+# ---- My Dotfiles Set Up ----
+# Git repo for my dotfiles:
+alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+alias gs='git status'
+alias sync='cd ~/dotfiles && git add -A && git diff --cached --quiet || git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main && cd -'
 
 # Git setup for zsh
 ZSH_DISABLE_COMPFIX=true
@@ -162,6 +164,7 @@ autoload -Uz vcs_info
 autoload -Uz compinit && compinit
 precmd_vcs_info() { vcs_info }
 precmd_functions+=( precmd_vcs_info )
+
 
 # --- Prompt setup ---
 autoload -Uz colors && colors      # enable color support
@@ -176,10 +179,13 @@ RPROMPT='%F{magenta}%*%f'
 # Format git branch name via git-prompt.sh
 zstyle ':vcs_info:git:*' formats '%b'
 
-# Development env variables
+
+# --- Dev env variables Set Up ---
 # LLVM + Ruby libs/includes (merged instead of overwritten)
 export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/ruby/lib"
 export CPPFLAGS="-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/ruby/include"
 
 eval "$(rbenv init - zsh)"
 export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
+
+
