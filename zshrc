@@ -189,3 +189,6 @@ eval "$(rbenv init - zsh)"
 export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
 
 
+# ---- Starship Set Up ----
+eval "$(starship init zsh)"
+
