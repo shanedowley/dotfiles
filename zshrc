@@ -166,8 +166,7 @@ function dotsync {
     return 0
   fi
 
-  dotgit commit -m "Update home dotfiles ($(date +%Y-%m-%d))" || return $?
-  dotgit push origin main
+  dotgit commit -m "Update home dotfiles ($(date +%Y-%m-%d))" && dotgit push origin main
 }
 
 # Git setup for zsh
