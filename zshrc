@@ -156,17 +156,41 @@ fi
 # Git repo for my dotfiles:
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 alias gs='git status'
-alias sync='cd ~/dotfiles && git add -A && git diff --cached --quiet || git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main && cd -'
+function sync {
+  (
+    cd "$HOME/dotfiles" || {
+      echo "sync: unable to access $HOME/dotfiles"
+      exit 1
+    }
+
+    git add -A
+
+    if git diff --cached --quiet; then
+      echo "sync: nothing staged (use git add <path> first)"
+      exit 0
+    fi
+
+    git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main
+  )
+}
+
 function dotsync {
-  # Stage updates to already tracked files; add new files manually before running dotsync
-  dotgit add -u
+  (
+    cd "$HOME" || {
+      echo "dotsync: unable to access $HOME"
+      exit 1
+    }
 
-  if dotgit diff --cached --quiet; then
-    echo "dotsync: nothing staged (use dotgit add <path> for new files)"
-    return 0
-  fi
+    # Stage updates to already tracked files; add new files manually before running dotsync
+    dotgit add -u
 
-  dotgit commit -m "Update home dotfiles ($(date +%Y-%m-%d))" && dotgit push origin main
+    if dotgit diff --cached --quiet; then
+      echo "dotsync: nothing staged (use dotgit add <path> for new files)"
+      exit 0
+    fi
+
+    dotgit commit -m "Update home dotfiles ($(date +%Y-%m-%d))" && dotgit push origin main
+  )
 }
 
 # Git setup for zsh
