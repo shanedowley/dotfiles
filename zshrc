@@ -157,6 +157,18 @@ fi
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 alias gs='git status'
 alias sync='cd ~/dotfiles && git add -A && git diff --cached --quiet || git commit -m "Update dotfiles ($(date +%Y-%m-%d))" && git push origin main && cd -'
+function dotsync {
+  # Stage updates to already tracked files; add new files manually before running dotsync
+  dotgit add -u
+
+  if dotgit diff --cached --quiet; then
+    echo "dotsync: nothing staged (use dotgit add <path> for new files)"
+    return 0
+  fi
+
+  dotgit commit -m "Update home dotfiles ($(date +%Y-%m-%d))" || return $?
+  dotgit push origin main
+}
 
 # Git setup for zsh
 ZSH_DISABLE_COMPFIX=true
@@ -191,4 +203,3 @@ export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
 
 # ---- Starship Set Up ----
 eval "$(starship init zsh)"
-
