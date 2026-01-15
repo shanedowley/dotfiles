@@ -166,7 +166,7 @@ function sync {
     git add -A
 
     if git diff --cached --quiet; then
-      echo "sync: nothing staged (use git add <path> first)"
+      echo "sync: nothing staged"
       exit 0
     fi
 
@@ -181,11 +181,11 @@ function dotsync {
       exit 1
     }
 
-    # Stage updates to already tracked files; add new files manually before running dotsync
-    dotgit add -u
+    # Stage all changes, including new files
+    dotgit add -A
 
     if dotgit diff --cached --quiet; then
-      echo "dotsync: nothing staged (use dotgit add <path> for new files)"
+      echo "dotsync: nothing staged"
       exit 0
     fi
 
