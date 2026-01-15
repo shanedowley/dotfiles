@@ -155,6 +155,7 @@ fi
 # ---- My Dotfiles Set Up ----
 # Git repo for my dotfiles:
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+export GIT_SSH_COMMAND="/usr/bin/ssh"
 alias gs='git status'
 function sync {
   (
@@ -181,15 +182,38 @@ function dotsync {
       exit 1
     }
 
-    # Stage all changes, including new files
-    dotgit add -A
+    local -a tracked_paths=(
+      ".config"
+      ".tmux.conf"
+      ".zshrc"
+      "bin"
+      "dotfiles"
+      "Documents/coding"
+    )
+
+    local -a add_paths=()
+    for path in "${tracked_paths[@]}"; do
+      if [ -e "$path" ]; then
+        add_paths+=("$path")
+      else
+        echo "dotsync: warning: $HOME/$path not found, skipping" >&2
+      fi
+    done
+
+    if [ ${#add_paths[@]} -eq 0 ]; then
+      echo "dotsync: no tracked paths available"
+      exit 0
+    fi
+
+    # Stage configured paths, excluding macOS temp files that start with "~"
+    dotgit add -A -- "${add_paths[@]}" ':(exclude)**/~*' ':(exclude)~*'
 
     if dotgit diff --cached --quiet; then
       echo "dotsync: nothing staged"
       exit 0
     fi
 
-    dotgit commit -m "Update home dotfiles ($(date +%Y-%m-%d))" && dotgit push origin main
+    dotgit commit -m "Update home dotfiles ($(/bin/date +%Y-%m-%d))" && dotgit push origin main
   )
 }
 
