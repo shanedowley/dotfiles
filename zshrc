@@ -52,40 +52,6 @@ function set_iterm_title_and_cursor() {
 }
 precmd_functions+=(set_iterm_title_and_cursor)
 
-# ---- iTerm2 Theme Control ----
-# Usage: setiterm_theme "gruvbox-dark" or "tokyonight_night"
-setiterm_theme() {
-  local preset="$1"
-  if [[ -z "$preset" ]]; then
-    echo "Usage: setiterm_theme \"Preset Name\"" >&2
-    return 1
-  fi
-
-  # AppleScript to apply a preset or fallback to manual color set
-  osascript <<EOF
-  tell application "iTerm2"
-    try
-      tell current window
-        tell current session
-          set color preset to "$preset"
-        end tell
-      end tell
-    on error
-      display notification "Preset '$preset' not found or unsupported in this version" with title "iTerm2 Theme Switch"
-    end try
-  end tell
-EOF
-}
-
-# iterm2 color schemes
-alias colour-catppuccin='setiterm_theme "catppuccin-mocha"'
-alias colour-django-smooth='setiterm_theme "DjangoSmooth"'
-alias colour-doom-peacock='setiterm_theme "Doom Peacock"'
-alias colour-gruvbox='setiterm_theme "gruvbox-dark"'
-alias colour-kanagawa='setiterm_theme "kanagawa"'
-alias colour-rose-pine='setiterm_theme "rose-pine"'
-alias colour-tokyonight='setiterm_theme "tokyonight_night"'
-
 
 # ---- Aliases Set Up ----
 
@@ -114,6 +80,7 @@ setopt rm_star_silent
 alias vim='/opt/homebrew/bin/nvim'
 alias vi='/opt/homebrew/bin/nvim'
 alias v='/opt/homebrew/bin/nvim'
+
 # Invoke Neovide silently and in the background passing a filename arg
 n() {
   if (( $# == 0 )); then
@@ -157,6 +124,7 @@ fi
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 export GIT_SSH_COMMAND="/usr/bin/ssh"
 alias gs='git status'
+
 function sync {
   (
     cd "$HOME/dotfiles" || {
@@ -250,3 +218,7 @@ export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
 
 # ---- Starship Set Up ----
 eval "$(starship init zsh)"
+
+
+
+
