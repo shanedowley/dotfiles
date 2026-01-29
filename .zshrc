@@ -1,1 +1,0 @@
-/Users/shane/dotfiles/zshrc
