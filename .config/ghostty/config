@@ -1,0 +1,24 @@
+# Font
+font-family = "FiraCode Nerd Font Mono"
+font-size = 14
+
+# Rendering
+background-opacity = 1.0
+cursor-style = block
+
+# Behaviour
+confirm-close-surface = false
+copy-on-select = true
+
+# Scrollback
+scrollback-limit = 500000000
+
+# Window
+window-padding-x = 6
+window-padding-y = 6
+
+# theme = Catppuccin Mocha
+theme = Nightfox
+
+
+cursor-style = block

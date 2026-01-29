@@ -1,0 +1,71 @@
+#!/usr/bin/env osascript
+
+on run argv
+    -- No arguments provided
+    if (count of argv) is 0 then
+        do shell script "echo 'Usage: safarireader <url-or-local-file>' >&2"
+        return 1
+    end if
+
+    set inputPath to item 1 of argv
+
+    -- Decide if it's a URL or a local file path
+    if inputPath starts with "http://" or inputPath starts with "https://" then
+        set theURL to inputPath
+    else
+        -- Treat as local file: check it exists
+        try
+            do shell script "test -e " & quoted form of inputPath
+        on error
+            do shell script "echo 'safarireader: file not found: " & quoted form of inputPath & "' >&2"
+            return 1
+        end try
+
+        -- Convert to file:// URL
+        set theFile to POSIX file inputPath
+        set theURL to "file://" & POSIX path of theFile
+    end if
+
+    -- Open Safari and load the URL
+    try
+        tell application "Safari"
+            activate
+
+            if (count of windows) = 0 then
+                make new document
+            end if
+
+            tell window 1
+                if (count of tabs) = 0 then
+                    make new tab
+                end if
+                set URL of current tab to theURL
+            end tell
+        end tell
+    on error errMsg number errNum
+        do shell script "echo 'safarireader: failed to talk to Safari (error " & errNum & "): " & errMsg & "' >&2"
+        return 1
+    end try
+
+    -- Give the page a moment to load before toggling Reader
+    delay 2
+
+    -- Try to send ⌘⇧R to Safari for Reader Mode
+    try
+        tell application "System Events"
+            if not (exists process "Safari") then
+                do shell script "echo 'safarireader: Safari process not found after launch.' >&2"
+                return 1
+            end if
+
+            tell process "Safari"
+                keystroke "r" using {command down, shift down}
+            end tell
+        end tell
+    on error errMsg number errNum
+        do shell script "echo 'safarireader: could not send Reader shortcut (check Accessibility permissions). Error " & errNum & ": " & errMsg & "' >&2"
+        return 1
+    end try
+
+    return 0
+end run

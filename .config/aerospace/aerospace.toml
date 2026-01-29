@@ -1,0 +1,205 @@
+# =========================
+# Core defaults (TOP LEVEL)
+# =========================
+
+# --- Sketchybar integration (TOP LEVEL) ---
+exec-on-workspace-change = ['/bin/bash', '-lc',
+  'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE="$AEROSPACE_FOCUSED_WORKSPACE"'
+]
+
+default-root-container-layout = "tiles"
+default-root-container-orientation = "horizontal"
+enable-normalization-flatten-containers = true
+enable-normalization-opposite-orientation-for-nested-containers = true
+
+[gaps]
+outer.top = 40
+
+# ===========================
+# Apps assigned to workspaces
+# ===========================
+
+[[on-window-detected]]
+if.app-id = 'com.neovide.neovide'
+run = 'move-node-to-workspace 0'
+
+[[on-window-detected]]
+if.app-id = 'com.mitchellh.ghostty'
+run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.iCal'
+run = 'move-node-to-workspace 2'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.mail'
+run = 'move-node-to-workspace 3'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Safari'
+run = 'move-node-to-workspace 4'
+
+[[on-window-detected]]
+if.app-id = 'com.openai.chat'
+run = 'move-node-to-workspace 5'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.finder'
+run = 'move-node-to-workspace 6'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Notes'
+run = 'move-node-to-workspace 7'
+
+[[on-window-detected]]
+if.app-id = 'com.microsoft.Word'
+run = 'move-node-to-workspace 8'
+
+[[on-window-detected]]
+if.app-id = 'com.microsoft.Powerpoint'
+run = 'move-node-to-workspace 9'
+
+[[on-window-detected]]
+if.app-id = 'com.microsoft.teams2'
+run = 'move-node-to-workspace 9'
+
+# ===========================
+# Float these apps by default 
+# ===========================
+
+[[on-window-detected]]
+if.app-id = 'com.apple.AddressBook'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.systempreferences'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.calculator'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Dictionary'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.QuickTimePlayerX'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Preview'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Music'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Photos'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.MobileSMS'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.FaceTime'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'us.zoom.xos'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'net.whatsapp.WhatsApp'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'org.whispersystems.signal-desktop'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.microsoft.teams2'
+run = 'layout floating'
+
+# ==========================================
+# Keybindings (HYPER)
+# Caps Lock (Karabiner) = ctrl+alt+cmd+shift
+# ==========================================
+
+[mode.main.binding]
+
+# Toggle fullscreen / tiled
+ctrl-alt-cmd-shift-enter = "fullscreen"
+
+# Toggle floating / tiling
+ctrl-alt-cmd-shift-t = "layout floating tiling"
+
+# Focus (keep hjkl)
+ctrl-alt-cmd-shift-h = "focus left"
+ctrl-alt-cmd-shift-l = "focus right"
+ctrl-alt-cmd-shift-k = "focus up"
+ctrl-alt-cmd-shift-j = "focus down"
+
+# Move windows within layout
+# (can't do "hyper+shift", so use u/i/o/p)
+ctrl-alt-cmd-shift-u = "move left"
+ctrl-alt-cmd-shift-p = "move right"
+ctrl-alt-cmd-shift-o = "move up"
+ctrl-alt-cmd-shift-i = "move down"
+
+# Workspace switching
+ctrl-alt-cmd-shift-1 = "workspace 1"
+ctrl-alt-cmd-shift-2 = "workspace 2"
+ctrl-alt-cmd-shift-3 = "workspace 3"
+ctrl-alt-cmd-shift-4 = "workspace 4"
+ctrl-alt-cmd-shift-5 = "workspace 5"
+ctrl-alt-cmd-shift-6 = "workspace 6"
+ctrl-alt-cmd-shift-7 = "workspace 7"
+ctrl-alt-cmd-shift-8 = "workspace 8"
+ctrl-alt-cmd-shift-9 = "workspace 9"
+ctrl-alt-cmd-shift-0 = "workspace 0"
+
+
+# Move active window to a workspace (no auto-switch)
+ctrl-alt-cmd-shift-z = "move-node-to-workspace 1"
+ctrl-alt-cmd-shift-x = "move-node-to-workspace 2"
+ctrl-alt-cmd-shift-c = "move-node-to-workspace 3"
+ctrl-alt-cmd-shift-v = "move-node-to-workspace 4"
+ctrl-alt-cmd-shift-b = "move-node-to-workspace 5"
+ctrl-alt-cmd-shift-n = "move-node-to-workspace 6"
+ctrl-alt-cmd-shift-m = "move-node-to-workspace 7"
+ctrl-alt-cmd-shift-q = "move-node-to-workspace 8"
+ctrl-alt-cmd-shift-w = "move-node-to-workspace 9"
+ctrl-alt-cmd-shift-e = "move-node-to-workspace 0"
+
+# =========================
+# Resize mode (HYPER)
+# =========================
+
+# Enter resize mode
+ctrl-alt-cmd-shift-s = "mode resize"
+
+[mode.resize.binding]
+
+# Exit resize mode
+esc = "mode main"
+enter = "mode main"
+ctrl-alt-cmd-shift-s = "mode main"
+
+# Resize active window (coarse)
+h = "resize width -64"
+l = "resize width +64"
+j = "resize height +64"
+k = "resize height -64"
+
+# Resize active window (fine)
+shift-h = "resize width -8"
+shift-l = "resize width +8"
+shift-j = "resize height +8"
+shift-k = "resize height -8"
+
+
+
+

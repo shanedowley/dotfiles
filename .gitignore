@@ -1,0 +1,62 @@
+# macOS system files
+.DS_Store
+__MACOSX/
+._*
+
+# Node.js dependencies
+node_modules/
+
+# Backup/swap files
+*.backup
+*.bak
+*.swp
+*.swo
+
+# Neovim runtime (plugin installs, caches, state)
+.local/share/nvim/
+.local/state/nvim/
+.cache/nvim/
+
+# Shell history (don’t leak your history!)
+.zsh_history
+.bash_history
+
+# Log files
+*.log
+
+# Ignore iTerm2 autosave junk
+iterm2/AutoLaunch.plist
+iterm2/DynamicProfiles/
+
+# macOS protected directories (avoid git status hangs)
+.config/htop/
+Library/
+Pictures/
+.Trash/
+
+# Large/local toolchains and project folders (not part of dotfiles)
+.nvm/
+.rbenv/
+Applications/limelight/
+Documents/Coding/
+
+# Secrets
+.zsh_secrets
+
+# Config files
+.config/iterm2/sockets
+.config/**/sockets
+.config/**/Cache
+.config/**/cache
+.config/**/.DS_Store
+
+# CoC extensions are generated / huge
+.config/coc/extensions/
+.config/coc/*-data/
+
+# Karabiner backups are auto-generated
+.config/karabiner/automatic_backups/
+
+# backups
+bin/*-bak
+bin/*.bak

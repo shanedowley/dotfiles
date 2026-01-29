@@ -1,0 +1,10 @@
+#!/bin/zsh
+
+# Kill a process as safely as possible.
+# Tries to kill a process using a series of signals with escalating urgency.
+# usage: ekill <pid>
+
+# Assign the process id to the first argument.
+pid=$1
+kill -15 $pid || kill -2 $pid || kill -1 $pid || kill -9 $pid
+
