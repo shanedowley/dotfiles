@@ -1,1 +1,11 @@
-/Users/shane/dotfiles/gitconfig
+[user]
+	name = Shane Dowley
+	email = shane.dowley@gmail.com
+[init]
+	defaultBranch = main
+[alias]
+	co = checkout
+[core]
+    editor = nvim
+	untrackedCache = true
+	fsmonitor = true
