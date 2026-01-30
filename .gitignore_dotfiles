@@ -1,0 +1,39 @@
+# --- macOS ---
+.DS_Store
+**/.DS_Store
+**/__MACOSX/**
+**/._*
+
+# --- Neovim / Lazy / Mason ---
+.config/nvim/lazy/
+.config/nvim/.lazy-lock.json.bak
+.config/nvim/plugin/
+.config/nvim/spell/
+.config/nvim/swap/
+.config/nvim/undo/
+.config/nvim/backup/
+
+# --- Coc ---
+.config/coc/extensions/**
+!.config/coc/extensions/package.json
+
+.config/coc/db.json
+.config/coc/memos.json
+.config/coc/diagnostic.json
+.config/coc/symbols.json
+
+# --- Node / tooling ---
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# --- Shell ---
+.zsh_history
+.zcompdump*
+.zcompcache/
+.zsh_sessions/
+
+# --- Misc ---
+.Trash/
+tmp/
+cache/
