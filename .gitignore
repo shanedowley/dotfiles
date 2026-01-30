@@ -3,60 +3,71 @@
 __MACOSX/
 ._*
 
-# Node.js dependencies
-node_modules/
-
 # Backup/swap files
 *.backup
 *.bak
 *.swp
 *.swo
+*.swn
+*~
+bin/*-bak
+bin/*.bak
 
-# Neovim runtime (plugin installs, caches, state)
+# Logs
+*.log
+
+# Shell history / secrets
+.zsh_history
+.bash_history
+.zsh_secrets
+
+# Node.js dependencies
+node_modules/
+
+# Vim/Neovim classic
+.vim/
+.vimrc.local
+.netrwhist
+
+# Neovim runtime (state/caches)
 .local/share/nvim/
 .local/state/nvim/
 .cache/nvim/
 
-# Shell history (don’t leak your history!)
-.zsh_history
-.bash_history
+# Neovim repo-local/state junk (belt & braces)
+.config/nvim/.luarc.json
+.config/nvim/.lazy/
+.config/nvim/lazy-lock.json.backup
+.config/nvim/plugin/
+.config/nvim/spell/*.spl
+.config/nvim/spell/*.sug
 
-# Log files
-*.log
-
-# Ignore iTerm2 autosave junk
-iterm2/AutoLaunch.plist
-iterm2/DynamicProfiles/
-
-# macOS protected directories (avoid git status hangs)
-.config/htop/
-Library/
-Pictures/
-.Trash/
-
-# Large/local toolchains and project folders (not part of dotfiles)
-.nvm/
-.rbenv/
-Applications/limelight/
-Documents/Coding/
-
-# Secrets
-.zsh_secrets
-
-# Config files
-.config/iterm2/sockets
-.config/**/sockets
-.config/**/Cache
-.config/**/cache
-.config/**/.DS_Store
-
-# CoC extensions are generated / huge
-.config/coc/extensions/
-.config/coc/*-data/
+# Coc (generated/huge)
+.config/coc/
 
 # Karabiner backups are auto-generated
 .config/karabiner/automatic_backups/
 
-# backups
-bin/*-bak
-bin/*.bak
+# iTerm2 autosave junk
+iterm2/AutoLaunch.plist
+iterm2/DynamicProfiles/
+
+# Generic config cache dirs
+.config/**/Cache/
+.config/**/cache/
+.config/**/.DS_Store
+.config/**/sockets
+.config/iterm2/sockets
+
+# Big / local-only folders (not dotfiles)
+Library/
+Pictures/
+.Trash/
+.nvm/
+.rbenv/
+Documents/Coding/
+
+# Your local backup directories (avoid permission errors + noise)
+dotfiles-backup-real/
+dotfiles-backup-*/
+
