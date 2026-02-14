@@ -2,9 +2,15 @@ return {
 	"akinsho/toggleterm.nvim",
 	version = "*",
 	config = function()
-		require("toggleterm").setup({
+		local ok_tt, toggleterm = pcall(require, "toggleterm")
+		if not ok_tt then
+			vim.notify("toggleterm not available", vim.log.levels.WARN)
+			return
+		end
+
+		toggleterm.setup({
 			size = 15,
-			open_mapping = [[<C-\>]], -- Ctrl + \ to toggle
+			open_mapping = [[<C-\>]],
 			hide_numbers = true,
 			shade_terminals = true,
 			shading_factor = 2,
@@ -12,103 +18,56 @@ return {
 			insert_mappings = true,
 			terminal_mappings = true,
 			persist_size = true,
-			direction = "float", -- use a floating drop-down in Neovide
-			close_on_exit = true,
+			direction = "float",
+			float_opts = { border = "rounded" },
+			close_on_exit = false,
 			shell = vim.o.shell,
 		})
-		----------------------------------------------------
-		-- Quake-style drop-down terminal on <F12>
-		----------------------------------------------------
-		local Terminal = require("toggleterm.terminal").Terminal
 
-		-- size + position for the drop-down feel
+		-- -------------------------------
+		-- Quake-style floating terminal
+		-- -------------------------------
+		local ok_term, term_mod = pcall(require, "toggleterm.terminal")
+		if not ok_term or not term_mod or not term_mod.Terminal then
+			vim.notify("toggleterm.terminal.Terminal not available", vim.log.levels.WARN)
+			return
+		end
+		local Terminal = term_mod.Terminal
+
 		local function quake_opts()
 			local cols = vim.o.columns
 			local lines = vim.o.lines
-
-			local width = math.floor(cols * 0.9) -- 90% of screen width
-			local height = math.floor(lines * 0.4) -- 40% of screen height
-			local col = math.floor((cols - width) / 2) -- centred horizontally
-			local row = 1 -- drop down from top
+			local width = math.floor(cols * 0.9)
+			local height = math.floor(lines * 0.4)
+			local col = math.floor((cols - width) / 2)
 
 			return {
 				border = "curved",
 				width = width,
 				height = height,
 				col = col,
-				row = row,
+				row = 1,
 			}
 		end
 
 		local quake_term = Terminal:new({
-			cmd = vim.o.shell, -- your default shell
+			cmd = vim.o.shell,
 			hidden = true,
 			direction = "float",
-			float_opts = quake_opts(),
+			float_opts = quake_opts(), -- MUST be a table (not a function)
+			close_on_exit = false,
 		})
 
-		function _quake_toggle()
+		local function quake_toggle()
+			-- refresh size each time (Neovide resize etc.)
+			quake_term.float_opts = quake_opts()
 			quake_term:toggle()
 		end
 
-		-- Toggle with F12 in NORMAL and TERMINAL modes
-		vim.keymap.set({ "n", "t" }, "<F12>", _quake_toggle, {
+		vim.keymap.set({ "n", "t" }, "<leader>tt", quake_toggle, {
 			noremap = true,
 			silent = true,
-			desc = "Toggle Quake terminal",
-		})
-
-		----------------------------------------------------
-		-- (Optional) nice terminal navigation
-		----------------------------------------------------
-		vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { silent = true })
-		vim.keymap.set("t", "<C-h>", [[<C-\><C-n><C-w>h]], { silent = true })
-		vim.keymap.set("t", "<C-j>", [[<C-\><C-n><C-w>j]], { silent = true })
-		vim.keymap.set("t", "<C-k>", [[<C-\><C-n><C-w>k]], { silent = true })
-		vim.keymap.set("t", "<C-l>", [[<C-\><C-n><C-w>l]], { silent = true })
-
-		----------------------------------------------------
-		-- Better keymaps inside terminal mode
-		----------------------------------------------------
-		local term_opts = { noremap = true, silent = true }
-		vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], term_opts)
-		vim.keymap.set("t", "<C-h>", [[<C-\><C-n><C-w>h]], term_opts)
-		vim.keymap.set("t", "<C-j>", [[<C-\><C-n><C-w>j]], term_opts)
-		vim.keymap.set("t", "<C-k>", [[<C-\><C-n><C-w>k]], term_opts)
-		vim.keymap.set("t", "<C-l>", [[<C-\><C-n><C-w>l]], term_opts)
-
-		----------------------------------------------------
-		-- Rust / Cargo helpers – buffer-local for Rust only
-		----------------------------------------------------
-		vim.api.nvim_create_autocmd("FileType", {
-			pattern = "rust",
-			callback = function(ev)
-				local opts = { noremap = true, silent = true, buffer = ev.buf }
-
-				-- Cargo run
-				vim.keymap.set(
-					"n",
-					"<leader>rr",
-					"<cmd>TermExec cmd='cargo run'<CR>",
-					vim.tbl_extend("force", opts, { desc = "Cargo run" })
-				)
-
-				-- Cargo build
-				vim.keymap.set(
-					"n",
-					"<leader>rb",
-					"<cmd>TermExec cmd='cargo build'<CR>",
-					vim.tbl_extend("force", opts, { desc = "Cargo build" })
-				)
-
-				-- Cargo test
-				vim.keymap.set(
-					"n",
-					"<leader>rt",
-					"<cmd>TermExec cmd='cargo test'<CR>",
-					vim.tbl_extend("force", opts, { desc = "Cargo test" })
-				)
-			end,
+			desc = "Toggle Quake-style terminal",
 		})
 	end,
 }

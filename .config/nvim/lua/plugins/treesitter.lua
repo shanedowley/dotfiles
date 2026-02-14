@@ -78,7 +78,7 @@ return {
 		"nvim-treesitter/nvim-treesitter-textobjects",
 	},
 	config = function(_, opts)
-		require("nvim-treesitter.configs").setup(opts)
+		require("nvim-treesitter").setup(opts)
 
 		-- 👇 Force Treesitter to treat .z80 files as asm
 		vim.treesitter.language.register("asm", "z80")

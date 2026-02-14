@@ -1,14 +1,21 @@
--- Unified DAP stack (C/C++ + JavaScript/TypeScript) with UI and virtual text.
+-- ~/.config/nvim/lua/plugins/debug.lua
+
 return {
 	{
 		"mfussenegger/nvim-dap",
 		event = "VeryLazy",
-		dependencies = {
-			-- UI + widgets
+		keys = {
+			{ "<leader>ad", "<cmd>DebugAsm<CR>", desc = "DAP: Build & Debug ARM64 Assembly" },
 			{
-				"rcarriga/nvim-dap-ui",
-				dependencies = { "nvim-neotest/nvim-nio" },
+				"<leader>ar",
+				function()
+					require("dap").run_last()
+				end,
+				desc = "DAP: Run last",
 			},
+		},
+
+		dependencies = {
 			"theHamsta/nvim-dap-virtual-text",
 
 			-- JS/TS debug bridge + debugger runtime
@@ -26,124 +33,71 @@ return {
 
 		config = function()
 			local dap = require("dap")
-			dap.set_log_level("TRACE")
-			local dapui = require("dapui")
+			dap.set_log_level("INFO")
+			dap.configurations = dap.configurations or {}
 
-			-- ----------------------------
-			-- UI + virtual text
-			-- ----------------------------
-			dapui.setup({
-				controls = {
-					enabled = true,
-					element = "repl",
-					icons = {
-						pause = "⏸️ ",
-						play = "▶️ ",
-						step_into = "↳ ",
-						step_over = "⤼ ",
-						step_out = "⤴ ",
-						step_back = "⏮️ ",
-						run_last = "🔁 ",
-						terminate = "⏹️ ",
-					},
-				},
-				floating = { border = "rounded" },
-			})
+			-- ---- Breakpoint UX: signs + highlights ----
+			vim.fn.sign_define("DapBreakpoint", { text = "●", texthl = "DiagnosticError" })
+			vim.fn.sign_define("DapBreakpointCondition", { text = "◆", texthl = "DiagnosticWarn" })
+			vim.fn.sign_define("DapBreakpointRejected", { text = "", texthl = "DiagnosticHint" })
+			vim.fn.sign_define("DapLogPoint", { text = "▶", texthl = "DiagnosticInfo" })
+			vim.fn.sign_define("DapStopped", { text = "→", texthl = "DiagnosticOk", linehl = "CursorLine" })
 
-			require("nvim-dap-virtual-text").setup({
-				highlight_new_as_changed = true,
-			})
-
-			-- Auto-open / close the UI alongside DAP sessions.
-			dap.listeners.after.event_initialized["dapui_config"] = function()
-				dapui.open()
-			end
-			dap.listeners.before.event_terminated["dapui_config"] = function()
-				dapui.close()
-			end
-			dap.listeners.before.event_exited["dapui_config"] = function()
-				dapui.close()
+			-- ---- dap-ui lifecycle (decoupled + deterministic) ----
+			dap.listeners.after.event_initialized["dapui_autoopen"] = function()
+				pcall(function()
+					require("lazy").load({ plugins = { "nvim-dap-ui" } })
+				end)
+				pcall(function()
+					require("dapui").open()
+				end)
 			end
 
-			-- ----------------------------
-			-- Helper: map if unused (avoid double mappings with user keymaps)
-			-- ----------------------------
-			local function map(mode, lhs, rhs, desc, opts)
-				opts = opts or {}
-				opts.desc = desc
-				opts.silent = opts.silent ~= false
-				opts.noremap = opts.noremap ~= false
-				if vim.fn.mapcheck(lhs, mode) ~= "" then
-					return
+			local function dapui_close()
+				pcall(function()
+					require("dapui").close()
+				end)
+			end
+
+			dap.listeners.before.event_terminated["dapui_autoclose"] = dapui_close
+			dap.listeners.before.event_exited["dapui_autoclose"] = dapui_close
+
+			local function ensure_config(ft, cfg)
+				dap.configurations[ft] = dap.configurations[ft] or {}
+				for _, existing in ipairs(dap.configurations[ft]) do
+					if existing.name == cfg.name then
+						return
+					end
 				end
-				vim.keymap.set(mode, lhs, rhs, opts)
+				table.insert(dap.configurations[ft], cfg)
 			end
 
-			-- Extra helper mappings (only if not already defined elsewhere)
-			map("n", "<leader>dc", dap.continue, "DAP: Continue / Start")
-			map("n", "<leader>do", dap.step_over, "DAP: Step over")
-			map("n", "<leader>di", dap.step_into, "DAP: Step into")
-			map("n", "<leader>dO", dap.step_out, "DAP: Step out")
-			map("n", "<leader>dl", dap.run_last, "DAP: Run last")
-			map("n", "<leader>dr", dap.repl.toggle, "DAP: Toggle REPL")
-			map("n", "<leader>de", function()
-				dapui.eval()
-			end, "DAP: Eval expression")
-			map("v", "<leader>de", function()
-				dapui.eval()
-			end, "DAP: Eval selection")
-			map("n", "<leader>df", function()
-				require("dap.ui.widgets").centered_float(require("dap.ui.widgets").frames)
-			end, "DAP: Show frames")
-			map("n", "<leader>ds", function()
-				require("dap.ui.widgets").centered_float(require("dap.ui.widgets").scopes)
-			end, "DAP: Show scopes")
-			map("n", "<leader>du", function()
-				dapui.toggle()
-			end, "DAP: Toggle UI")
-
-			-- ADD this just after the other DAP maps:
-			map("n", "<leader>dQ", function()
-				local ok_dap, dap = pcall(require, "dap")
-				if ok_dap then
-					pcall(dap.terminate)
-				end
-				local ok_ui, dapui = pcall(require, "dapui")
-				if ok_ui then
-					pcall(dapui.close)
-				end
-			end, "DAP: Terminate + close UI")
+			-- ---- virtual text (safe) ----
+			pcall(function()
+				require("nvim-dap-virtual-text").setup({ highlight_new_as_changed = true })
+			end)
 
 			-- ----------------------------
 			-- JavaScript / TypeScript via vscode-js-debug
 			-- ----------------------------
-			local ok_js, dap_vscode = pcall(require, "dap-vscode-js")
-			if ok_js then
-				local debugger_path = nil
-				local mason_path = vim.fn.stdpath("data") .. "/mason/packages/js-debug-adapter"
-				if vim.fn.isdirectory(mason_path) == 1 then
-					debugger_path = mason_path
-				else
-					local lazy_path = vim.fn.stdpath("data") .. "/lazy/vscode-js-debug"
-					if vim.fn.isdirectory(lazy_path) == 1 then
-						debugger_path = lazy_path
-					end
+			local ok_js_block, js_err = pcall(function()
+				local ok_js, dap_vscode = pcall(require, "dap-vscode-js")
+				if not ok_js then
+					return
+				end
+
+				local plugins = require("lazy.core.config").plugins
+				local js_debug = plugins["vscode-js-debug"]
+				local debugger_path = js_debug and js_debug.dir or nil
+
+				if not debugger_path or vim.fn.isdirectory(debugger_path) == 0 then
+					error("vscode-js-debug plugin directory not found")
 				end
 
 				dap_vscode.setup({
 					debugger_path = debugger_path,
 					adapters = { "pwa-node", "pwa-chrome", "node-terminal" },
 				})
-
-				local function ensure(ft, cfg)
-					dap.configurations[ft] = dap.configurations[ft] or {}
-					for _, existing in ipairs(dap.configurations[ft]) do
-						if existing.name == cfg.name then
-							return
-						end
-					end
-					table.insert(dap.configurations[ft], cfg)
-				end
 
 				local js_languages = {
 					"javascript",
@@ -155,7 +109,7 @@ return {
 				}
 
 				for _, ft in ipairs(js_languages) do
-					ensure(ft, {
+					ensure_config(ft, {
 						name = "Node: Launch current file",
 						type = "pwa-node",
 						request = "launch",
@@ -163,22 +117,31 @@ return {
 						cwd = "${workspaceFolder}",
 						runtimeExecutable = "node",
 						console = "integratedTerminal",
+						internalConsoleOptions = "neverOpen",
 					})
-					ensure(ft, {
+
+					ensure_config(ft, {
 						name = "Node: Attach",
 						type = "pwa-node",
 						request = "attach",
-						processId = require("dap.utils").pick_process,
+						processId = function()
+							local ok_utils, utils = pcall(require, "dap.utils")
+							if ok_utils then
+								return utils.pick_process()
+							end
+							return nil
+						end,
 						cwd = "${workspaceFolder}",
 					})
 				end
+
 				for _, ft in ipairs({
 					"javascript",
 					"typescript",
 					"javascriptreact",
 					"typescriptreact",
 				}) do
-					ensure(ft, {
+					ensure_config(ft, {
 						name = "Chrome: Attach to localhost",
 						type = "pwa-chrome",
 						request = "attach",
@@ -186,16 +149,20 @@ return {
 						webRoot = "${workspaceFolder}",
 					})
 				end
+			end)
+
+			if not ok_js_block then
+				vim.notify(
+					"dap-vscode-js setup failed: " .. tostring(js_err),
+					vim.log.levels.WARN,
+					{ title = "nvim-dap" }
+				)
 			end
 
-			-- ----------------------------
+			-- -----------------------------------
 			-- C / C++ / ARM64 Assembly (lldb-dap)
-			-- ----------------------------
-			-- Prefer Mason-installed CodeLLDB, fallback to system lldb-dap.
-			local lldb = vim.fn.stdpath("data") .. "/mason/bin/codelldb"
-			if vim.fn.filereadable(lldb) == 0 then
-				lldb = vim.fn.exepath("lldb-dap")
-			end
+			-- -----------------------------------
+			local lldb = vim.fn.exepath("lldb-dap")
 			if lldb == "" then
 				lldb = "/Library/Developer/CommandLineTools/usr/bin/lldb-dap"
 			end
@@ -204,16 +171,29 @@ return {
 				dap.adapters.cpp = {
 					type = "executable",
 					command = lldb,
-					args = { "--" },
 					name = "cpp",
-					attach = { pidProperty = "pid", pidSelect = "ask" },
 				}
-				-- Aliases so different configs can refer to the same CodeLLDB adapter
 				dap.adapters.lldb = dap.adapters.cpp
 				dap.adapters.codelldb = dap.adapters.cpp
 
 				local function cpp_launch()
-					return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+					local cwd = vim.fn.getcwd()
+					local gtest_link = cwd .. "/.neotest_gtest_exec"
+					if vim.loop.fs_stat(gtest_link) then
+						return gtest_link
+					end
+
+					local hello = cwd .. "/hello"
+					if vim.fn.filereadable(hello) == 1 then
+						return hello
+					end
+
+					local maybe = cwd .. "/" .. vim.fn.expand("%:t:r")
+					if vim.fn.filereadable(maybe) == 1 then
+						return maybe
+					end
+
+					return vim.fn.input("Path to executable: ", cwd .. "/", "file")
 				end
 
 				local cpp_config = {
@@ -223,23 +203,20 @@ return {
 					program = cpp_launch,
 					cwd = "${workspaceFolder}",
 					stopOnEntry = false,
-					args = {},
+					args = function()
+						local input = vim.fn.input("Args: ")
+						return vim.split(input, " ", { trimempty = true })
+					end,
 				}
-
-				dap.configurations.c = dap.configurations.c or {}
-				dap.configurations.cpp = dap.configurations.cpp or {}
 
 				-- -----------------------------------
 				-- Rust (reuses CodeLLDB "cpp" adapter)
 				-- -----------------------------------
-				dap.configurations.rust = dap.configurations.rust or {}
-
-				table.insert(dap.configurations.rust, {
+				ensure_config("rust", {
 					name = "Debug Rust crate (target/debug)",
-					type = "codelldb", -- matches the aliased adapter
+					type = "cpp", -- or "codelldb" if you prefer; both map to lldb-dap
 					request = "launch",
 					program = function()
-						-- Try to infer the crate name from Cargo.toml, fall back to folder name
 						local cwd = vim.fn.getcwd()
 						local crate = nil
 						local cargo_toml = cwd .. "/Cargo.toml"
@@ -259,6 +236,13 @@ return {
 						end
 
 						local default_exe = cwd .. "/target/debug/" .. crate
+
+						-- If the inferred binary exists, just use it
+						if vim.fn.filereadable(default_exe) == 1 then
+							return default_exe
+						end
+
+						-- Otherwise, prompt
 						return vim.fn.input("Path to executable: ", default_exe, "file")
 					end,
 					cwd = "${workspaceFolder}",
@@ -266,73 +250,29 @@ return {
 					args = {},
 				})
 
-				-- Custom debug config for Chocolate Doom binary
-				table.insert(dap.configurations.c, {
-					name = "Debug Chocolate Doom",
-					type = "cpp",
-					request = "launch",
-					program = function()
-						local cwd = vim.fn.getcwd()
-						local root = cwd:gsub("/src/[^/]+$", "") -- strip /src/<subdir> if present
-						return vim.fn.fnamemodify(root .. "/src/chocolate-doom", ":p") -- absolute path
-					end,
-					cwd = "${workspaceFolder}",
-					stopOnEntry = false,
-					args = {
-						"-iwad",
-						vim.fn.expand("$HOME/Library/Application Support/gzdoom/doom.wad"),
-						"-nosound",
-						"-nogui",
-						"-nograph",
-					},
-					initCommands = (function()
-						local cwd = vim.fn.getcwd()
-						local root = cwd:gsub("/src/[^/]+$", "")
-						local exe = vim.fn.fnamemodify(root .. "/src/chocolate-doom", ":p")
-						local dsym = vim.fn.fnamemodify(root .. "/src/chocolate-doom.dSYM", ":p")
-						return {
-							"target create " .. exe,
-							"target symbols add " .. dsym,
-							"breakpoint set --name D_DoomLoop",
-						}
-					end)(),
-				})
-
-				if #dap.configurations.cpp == 0 then
-					table.insert(dap.configurations.cpp, cpp_config)
-				end
-
-				if #dap.configurations.c == 0 then
-					table.insert(dap.configurations.c, vim.deepcopy(cpp_config))
-				end
+				ensure_config("cpp", cpp_config)
+				ensure_config("c", vim.deepcopy(cpp_config))
 
 				-- ARM64 assembly (uses same LLDB adapter as C/C++).
-				dap.configurations.asm = dap.configurations.asm or {}
-				table.insert(dap.configurations.asm, {
-					name = "Debug ARM64 Assembly",
-					type = "cpp",
-					request = "launch",
-					program = function()
-						local default = vim.fn.expand("%:p:r")
-						return vim.fn.input("Path to ARM64 executable: ", default, "file")
-					end,
-					cwd = "${workspaceFolder}",
-					stopOnEntry = true,
-					initCommands = {
-						"settings set target.run-args ''",
-						"settings set target.process.stop-on-sharedlibrary-loads false",
-						"settings set target.skip-prologue true",
-						"breakpoint set --name _main",
-					},
-				})
-
-				-- Auto-detect .s / .S files
-				vim.api.nvim_create_autocmd("FileType", {
-					pattern = { "asm", "arm64asm", "gas" },
-					callback = function()
-						require("dap").configurations.asm = require("dap").configurations.asm or {}
-					end,
-				})
+				for _, ft in ipairs({ "asm", "gas", "arm64asm" }) do
+					ensure_config(ft, {
+						name = "Debug ARM64 Asm (launch)",
+						type = "cpp",
+						request = "launch",
+						program = function()
+							local default = vim.fn.expand("%:p:r") .. ".out"
+							return vim.fn.input("Path to ARM64 executable: ", default, "file")
+						end,
+						cwd = "${workspaceFolder}",
+						stopOnEntry = true,
+						initCommands = {
+							"settings set target.run-args ''",
+							"settings set target.process.stop-on-sharedlibrary-loads false",
+							"settings set target.skip-prologue true",
+							"breakpoint set --name _main",
+						},
+					})
+				end
 			else
 				vim.notify(
 					"lldb-dap not found in PATH; C/C++ debugging disabled",
@@ -345,28 +285,35 @@ return {
 			-- Build & Debug commands for any .s file
 			-- ---------------------------------------
 			vim.api.nvim_create_user_command("DebugAsm", function()
+				local ext = vim.fn.expand("%:e")
+				if ext ~= "s" and ext ~= "S" then
+					vim.notify("DebugAsm: not an assembly buffer (.s/.S)", vim.log.levels.WARN, { title = "nvim-dap" })
+					return
+				end
+
 				local output = vim.fn.expand("%:p:r") .. ".out"
-				vim.cmd("!clang -target arm64-apple-macos -isysroot $(xcrun --show-sdk-path) -o " .. output .. " %")
+				vim.cmd(
+					string.format(
+						"!clang -target arm64-apple-macos -isysroot $(xcrun --show-sdk-path) -o %q %q",
+						output,
+						vim.fn.expand("%:p")
+					)
+				)
 				require("dap").run({
-					name = "Debug ARM64 Assembly",
+					name = "DebugAsm (build + launch)",
 					type = "cpp",
 					request = "launch",
 					program = output,
 					cwd = vim.fn.getcwd(),
 					stopOnEntry = true,
 					initCommands = {
+						"settings set target.run-args ''",
 						"settings set target.process.stop-on-sharedlibrary-loads false",
 						"settings set target.skip-prologue true",
 						"breakpoint set --name _main",
 					},
 				})
 			end, { desc = "Assemble & Debug current ARM64 source" })
-
-			vim.keymap.set("n", "<leader>ad", ":DebugAsm<CR>", { desc = "Build & Debug ARM64 Assembly" })
-
-			vim.keymap.set("n", "<leader>ar", function()
-				require("dap").run_last()
-			end, { desc = "Rerun last ARM64 Debug" })
 		end,
 	},
 }

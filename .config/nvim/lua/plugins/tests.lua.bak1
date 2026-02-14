@@ -9,13 +9,10 @@ return {
 			"nvim-treesitter/nvim-treesitter",
 			"nvim-neotest/nvim-nio",
 
-			-- Pick ONE gtest adapter (keep the pinned one)
-			{
-				"alfaix/neotest-gtest",
-				commit = "b66f1d3",
-			},
+			-- Pick ONE gtest adapter (keep pinned)
+			{ "alfaix/neotest-gtest", commit = "b66f1d3" },
 
-			-- Rust adapter ONCE
+			-- Rust adapter (optional)
 			{ "rouge8/neotest-rust", name = "neotest-rust" },
 		},
 
@@ -28,12 +25,9 @@ return {
 
 			local lib = require("neotest.lib")
 
-			local ok_rust, neotest_rust = pcall(require, "neotest-rust")
-			if not ok_rust then
-				vim.notify("[tests.lua] neotest-rust NOT available", vim.log.levels.WARN)
-			end
-
-			-- Build adapters list dynamically based on what loaded
+			-- ----------------------------
+			-- Adapters
+			-- ----------------------------
 			local adapters = {}
 
 			local ok_gtest, gtest = pcall(require, "neotest-gtest")
@@ -43,9 +37,7 @@ return {
 						return file_path:match("_test%.cpp$") ~= nil
 					end,
 
-					mappings = {
-						configure = "C",
-					},
+					mappings = { configure = "C" },
 
 					root = lib.files.match_root_pattern(
 						"compile_commands.json",
@@ -55,10 +47,11 @@ return {
 						".git"
 					),
 
-					filter_dir = function(name)
+					filter_dir = function(name, _rel_path, _root)
 						return not (name == ".git" or name == "_deps" or name == "CMakeFiles")
 					end,
 
+					-- IMPORTANT: keep this stable; the debug commands below rely on the same link
 					executable = function()
 						local root = lib.files.match_root_pattern(
 							"compile_commands.json",
@@ -77,6 +70,7 @@ return {
 				vim.notify("[tests.lua] neotest-gtest NOT available", vim.log.levels.ERROR)
 			end
 
+			local ok_rust, neotest_rust = pcall(require, "neotest-rust")
 			if ok_rust then
 				table.insert(adapters, neotest_rust({ args = { "--nocapture" } }))
 			end
@@ -86,7 +80,7 @@ return {
 
 				discovery = {
 					enabled = true,
-					filter_dir = function(name, rel_path)
+					filter_dir = function(_name, rel_path)
 						rel_path = rel_path or ""
 						return not (rel_path == "lazy" or rel_path:match("^lazy/") or rel_path:match("/lazy/"))
 					end,
@@ -109,7 +103,6 @@ return {
 					skipped = "⚠",
 					unknown = "?",
 				},
-
 				highlights = {
 					passed = "DiagnosticOk",
 					failed = "DiagnosticError",
@@ -118,7 +111,20 @@ return {
 				},
 			})
 
-			-- Helper: Jump to C++ window explicitly
+			-- ----------------------------
+			-- Helpers
+			-- ----------------------------
+
+			local function project_root_from_buf(bufname)
+				return lib.files.match_root_pattern(
+					"compile_commands.json",
+					"compile_flags.txt",
+					"CMakeLists.txt",
+					".clangd",
+					".git"
+				)(bufname ~= "" and bufname or vim.loop.cwd()) or vim.loop.cwd()
+			end
+
 			local function focus_cpp_window()
 				local cur_win = vim.api.nvim_get_current_win()
 				local cur_buf = vim.api.nvim_win_get_buf(cur_win)
@@ -129,6 +135,7 @@ return {
 					return true
 				end
 
+				-- Prefer *_test.cpp window
 				for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
 					local buf = vim.api.nvim_win_get_buf(win)
 					local ft = vim.bo[buf].filetype
@@ -139,6 +146,7 @@ return {
 					end
 				end
 
+				-- Any C/C++ window
 				for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
 					local buf = vim.api.nvim_win_get_buf(win)
 					local ft = vim.bo[buf].filetype
@@ -152,16 +160,9 @@ return {
 				return false
 			end
 
-			-- Helper: (re)link a project-local test exe so paths stay relative
 			local function relink_gtest_exec()
 				local buf = vim.api.nvim_buf_get_name(0)
-				local root = lib.files.match_root_pattern(
-					"compile_commands.json",
-					"compile_flags.txt",
-					"CMakeLists.txt",
-					".clangd",
-					".git"
-				)(buf ~= "" and buf or vim.loop.cwd()) or vim.loop.cwd()
+				local root = project_root_from_buf(buf)
 
 				local candidates = {
 					root .. "/build",
@@ -174,6 +175,7 @@ return {
 					local found = vim.fs.find(function(name, _)
 						return name:match(".*_test$") or name:match(".*_test%.exe$")
 					end, { path = dir, type = "file", limit = 1 })
+
 					if #found > 0 then
 						exe = found[1]
 						break
@@ -186,6 +188,7 @@ return {
 				end
 
 				local target = root .. "/.neotest_gtest_exec"
+
 				if vim.loop.fs_stat(target) == nil then
 					vim.fn.system({ "ln", "-sfn", exe, target })
 				else
@@ -195,19 +198,198 @@ return {
 					end
 				end
 			end
+
 			vim.api.nvim_create_user_command("NeotestGtestLink", relink_gtest_exec, {})
 
-			-- Runner that shows summary
+			local function current_gtest_suite()
+				local bufnr = vim.api.nvim_get_current_buf()
+				local row = vim.api.nvim_win_get_cursor(0)[1]
+
+				for i = row, math.max(1, row - 300), -1 do
+					local line = (vim.api.nvim_buf_get_lines(bufnr, i - 1, i, false)[1] or "")
+					local m = vim.fn.matchlist(
+						line,
+						[[\v^\s*(TEST|TEST_F|TEST_P|TYPED_TEST|TYPED_TEST_P|FRIEND_TEST)\s*\(\s*([A-Za-z0-9_:]+)\s*,\s*([A-Za-z0-9_:]+)\s*\)]]
+					)
+					if m and m[3] and m[3] ~= "" then
+						return (m[3]:gsub("[^%w_:]+$", ""))
+					end
+				end
+
+				return nil
+			end
+
+			local function nearest_gtest_filter()
+				local bufnr = vim.api.nvim_get_current_buf()
+				local row = vim.api.nvim_win_get_cursor(0)[1]
+
+				for i = row, math.max(1, row - 300), -1 do
+					local line = (vim.api.nvim_buf_get_lines(bufnr, i - 1, i, false)[1] or "")
+					local m = vim.fn.matchlist(
+						line,
+						[[\v^\s*(TEST|TEST_F|TEST_P|TYPED_TEST|TYPED_TEST_P|FRIEND_TEST)\s*\(\s*([A-Za-z0-9_:]+)\s*,\s*([A-Za-z0-9_:]+)\s*\)]]
+					)
+					if m and m[3] and m[4] and m[3] ~= "" and m[4] ~= "" then
+						local suite = (m[3]:gsub("[^%w_:]+$", ""))
+						local name = (m[4]:gsub("[^%w_:]+$", ""))
+						return suite .. "." .. name
+					end
+				end
+
+				return nil
+			end
+
+			-- ----------------------------
+			-- Debug (DIRECT DAP) — hardened
+			-- ----------------------------
+
+			local function dap_program_for_root(root)
+				local program = root .. "/.neotest_gtest_exec"
+				if vim.loop.fs_stat(program) == nil then
+					vim.notify(
+						"[dap] Missing " .. program .. " (run :NeotestGtestLink or build tests)",
+						vim.log.levels.ERROR
+					)
+					return nil
+				end
+				return program
+			end
+
+			local function open_dapui_if_available()
+				pcall(function()
+					require("dapui").open()
+				end)
+			end
+
+			local function debug_nearest_gtest()
+				if not focus_cpp_window() then
+					vim.notify("[tests.lua] No C/C++ window found in this tab", vim.log.levels.ERROR)
+					return
+				end
+
+				relink_gtest_exec()
+
+				local ok_dap, dap = pcall(require, "dap")
+				if not ok_dap then
+					vim.notify("[tests.lua] nvim-dap not available", vim.log.levels.ERROR)
+					return
+				end
+
+				local buf = vim.api.nvim_buf_get_name(0)
+				local root = project_root_from_buf(buf)
+				local program = dap_program_for_root(root)
+				if not program then
+					return
+				end
+
+				local filter = nearest_gtest_filter()
+				local default_args = filter and ("--gtest_filter=" .. filter) or "--gtest_filter=*"
+				local args_input = vim.fn.input("[td] Args: ", default_args)
+				local args = vim.split(args_input, " ", { trimempty = true })
+
+				open_dapui_if_available()
+
+				dap.run({
+					name = "Debug nearest gtest",
+					type = "cpp",
+					request = "launch",
+					program = program,
+					cwd = root,
+					stopOnEntry = false,
+					args = args,
+				})
+			end
+
+			local function debug_gtest_suite_or_all()
+				if not focus_cpp_window() then
+					vim.notify("[tests.lua] No C/C++ window found in this tab", vim.log.levels.ERROR)
+					return
+				end
+
+				relink_gtest_exec()
+
+				local ok_dap, dap = pcall(require, "dap")
+				if not ok_dap then
+					vim.notify("[tests.lua] nvim-dap not available", vim.log.levels.ERROR)
+					return
+				end
+
+				local buf = vim.api.nvim_buf_get_name(0)
+				local root = project_root_from_buf(buf)
+				local program = dap_program_for_root(root)
+				if not program then
+					return
+				end
+
+				local suite = current_gtest_suite()
+				local default_args = suite and ("--gtest_filter=" .. suite .. ".*") or "--gtest_filter=*"
+				local args_input = vim.fn.input("[tG] Args: ", default_args)
+				local args = vim.split(args_input, " ", { trimempty = true })
+
+				open_dapui_if_available()
+
+				dap.run({
+					name = "Debug gtest suite/all",
+					type = "cpp",
+					request = "launch",
+					program = program,
+					cwd = root,
+					stopOnEntry = false,
+					args = args,
+				})
+			end
+
+			local function debug_gtest_custom_args()
+				if not focus_cpp_window() then
+					vim.notify("[tests.lua] No C/C++ window found in this tab", vim.log.levels.ERROR)
+					return
+				end
+
+				relink_gtest_exec()
+
+				local ok_dap, dap = pcall(require, "dap")
+				if not ok_dap then
+					vim.notify("[tests.lua] nvim-dap not available", vim.log.levels.ERROR)
+					return
+				end
+
+				local buf = vim.api.nvim_buf_get_name(0)
+				local root = project_root_from_buf(buf)
+				local program = dap_program_for_root(root)
+				if not program then
+					return
+				end
+
+				local args_input = vim.fn.input("[tD] Args: ", "--gtest_filter=*")
+				local args = vim.split(args_input, " ", { trimempty = true })
+
+				open_dapui_if_available()
+
+				dap.run({
+					name = "Debug gtest (custom args)",
+					type = "cpp",
+					request = "launch",
+					program = program,
+					cwd = root,
+					stopOnEntry = false,
+					args = args,
+				})
+			end
+
+			-- ----------------------------
+			-- Run (neotest) + UI keymaps
+			-- ----------------------------
+
 			local function run_and_show(pos_or_opts)
 				neotest.summary.open()
 				neotest.run.run(pos_or_opts or {})
 			end
 
-			-- Keymaps
 			local map = function(lhs, rhs, desc)
 				vim.keymap.set("n", lhs, rhs, { desc = desc, silent = true })
 			end
 
+			-- normal test runs (ticks)
 			map("<leader>tn", function()
 				relink_gtest_exec()
 				if vim.bo.filetype == "neotest-summary" then
@@ -226,14 +408,7 @@ return {
 
 			map("<leader>ta", function()
 				local buf = vim.api.nvim_buf_get_name(0)
-				local root = lib.files.match_root_pattern(
-					"compile_commands.json",
-					"compile_flags.txt",
-					"CMakeLists.txt",
-					".clangd",
-					".git"
-				)(buf ~= "" and buf or vim.loop.cwd()) or vim.loop.cwd()
-
+				local root = project_root_from_buf(buf)
 				neotest.summary.open()
 				neotest.run.run(root)
 			end, "Test: Run all (project)")
@@ -241,235 +416,25 @@ return {
 			map("<leader>tR", function()
 				neotest.run.run_last()
 			end, "Test: Run last")
+
 			map("<leader>ts", function()
 				neotest.summary.toggle()
 			end, "Test: Toggle summary")
+
 			map("<leader>to", function()
 				neotest.output.open({ enter = true })
 			end, "Test: Show output")
+
 			map("<leader>tO", function()
 				neotest.output_panel.toggle()
 			end, "Test: Toggle output panel")
+
 			map("<leader>tL", relink_gtest_exec, "Test: Relink .neotest_gtest_exec")
 
-			-- --------
-			-- DAP debug helpers (stable) + tick refresh
-			-- --------
-
-			local function current_gtest_suite()
-				local bufnr = vim.api.nvim_get_current_buf()
-				local row = vim.api.nvim_win_get_cursor(0)[1]
-
-				for i = row, math.max(1, row - 300), -1 do
-					local line = (vim.api.nvim_buf_get_lines(bufnr, i - 1, i, false)[1] or "")
-					local m = vim.fn.matchlist(
-						line,
-						[[\v^\s*(TEST|TEST_F|TEST_P|TYPED_TEST|TYPED_TEST_P|FRIEND_TEST)\s*\(\s*([A-Za-z0-9_:]+)\s*,\s*([A-Za-z0-9_:]+)\s*\)]]
-					)
-					if m and m[3] and m[3] ~= "" then
-						local suite = m[3]:gsub("[^%w_:]+$", "")
-						return suite
-					end
-				end
-
-				return nil
-			end
-
-			local function nearest_gtest_filter()
-				local bufnr = vim.api.nvim_get_current_buf()
-				local row = vim.api.nvim_win_get_cursor(0)[1]
-
-				for i = row, math.max(1, row - 300), -1 do
-					local line = (vim.api.nvim_buf_get_lines(bufnr, i - 1, i, false)[1] or "")
-					local m = vim.fn.matchlist(
-						line,
-						[[\v^\s*(TEST|TEST_F|TEST_P|TYPED_TEST|TYPED_TEST_P|FRIEND_TEST)\s*\(\s*([A-Za-z0-9_:]+)\s*,\s*([A-Za-z0-9_:]+)\s*\)]]
-					)
-					if m and m[3] and m[4] and m[3] ~= "" and m[4] ~= "" then
-						local suite = (m[3] or ""):gsub("[^%w_:]+$", "")
-						local name = (m[4] or ""):gsub("[^%w_:]+$", "")
-						return suite .. "." .. name
-					end
-				end
-
-				return nil
-			end
-
-			local function project_root_for_buf(buf)
-				return lib.files.match_root_pattern(
-					"compile_commands.json",
-					"compile_flags.txt",
-					"CMakeLists.txt",
-					".clangd",
-					".git"
-				)(buf ~= "" and buf or vim.loop.cwd()) or vim.loop.cwd()
-			end
-
-			local function dap_run_and_refresh(refresh_fn, dap_run_fn)
-				local ok_dap, dap = pcall(require, "dap")
-				if not ok_dap then
-					vim.notify("[tests.lua] nvim-dap not available", vim.log.levels.ERROR)
-					return
-				end
-
-				local key = ("neotest_refresh_%d_%d"):format(
-					vim.fn.getpid(),
-					vim.fn.reltimefloat(vim.fn.reltime()) * 1e6
-				)
-
-				local function done()
-					dap.listeners.after.event_terminated[key] = nil
-					dap.listeners.after.event_exited[key] = nil
-					if type(refresh_fn) == "function" then
-						vim.schedule(refresh_fn)
-					end
-				end
-
-				dap.listeners.after.event_terminated[key] = done
-				dap.listeners.after.event_exited[key] = done
-
-				dap_run_fn()
-			end
-
-			local function debug_nearest_gtest_dap()
-				if not focus_cpp_window() then
-					vim.notify("[tests.lua] No C/C++ window found in this tab", vim.log.levels.ERROR)
-					return
-				end
-
-				relink_gtest_exec()
-
-				local buf = vim.api.nvim_buf_get_name(0)
-				local root = project_root_for_buf(buf)
-				local program = root .. "/.neotest_gtest_exec"
-
-				if vim.loop.fs_stat(program) == nil then
-					vim.notify(
-						"[dap] Missing " .. program .. " (run :NeotestGtestLink or build tests)",
-						vim.log.levels.ERROR
-					)
-					return
-				end
-
-				local dap = require("dap")
-				local filter = nearest_gtest_filter()
-				local default_args = filter and ("--gtest_filter=" .. filter) or "--gtest_filter=*"
-				local args_input = vim.fn.input("[td] Args: ", default_args)
-				local args = vim.split(args_input, " ", { trimempty = true })
-
-				pcall(function()
-					require("dapui").open()
-				end)
-
-				dap_run_and_refresh(function()
-					-- After debug ends, refresh neotest ticks (nearest)
-					neotest.summary.open()
-					neotest.run.run() -- nearest
-				end, function()
-					dap.run({
-						name = "Debug nearest gtest",
-						type = "cpp",
-						request = "launch",
-						program = program,
-						cwd = root,
-						stopOnEntry = false,
-						args = args,
-					})
-				end)
-			end
-
-			local function debug_suite_gtest_dap()
-				if not focus_cpp_window() then
-					vim.notify("[tests.lua] No C/C++ window found in this tab", vim.log.levels.ERROR)
-					return
-				end
-
-				relink_gtest_exec()
-
-				local buf = vim.api.nvim_buf_get_name(0)
-				local root = project_root_for_buf(buf)
-				local program = root .. "/.neotest_gtest_exec"
-
-				if vim.loop.fs_stat(program) == nil then
-					vim.notify(
-						"[dap] Missing " .. program .. " (run :NeotestGtestLink or build tests)",
-						vim.log.levels.ERROR
-					)
-					return
-				end
-
-				local dap = require("dap")
-
-				local suite = current_gtest_suite()
-				local default_args = suite and ("--gtest_filter=" .. suite .. ".*") or "--gtest_filter=*"
-				local args_input = vim.fn.input("[tG] Args: ", default_args)
-				local args = vim.split(args_input, " ", { trimempty = true })
-
-				neotest.summary.open()
-				pcall(function()
-					require("dapui").open()
-				end)
-
-				dap_run_and_refresh(function()
-					-- After debug ends, refresh ticks at project scope
-					neotest.summary.open()
-					neotest.run.run(root)
-				end, function()
-					dap.run({
-						name = "Debug gtest suite/all",
-						type = "cpp",
-						request = "launch",
-						program = program,
-						cwd = root,
-						stopOnEntry = false,
-						args = args,
-					})
-				end)
-			end
-
-			-- ✅ Your hardened mappings:
-			map("<leader>td", debug_nearest_gtest_dap, "Test: Debug nearest gtest (DAP) + refresh ticks")
-			map("<leader>tG", debug_suite_gtest_dap, "Test: Debug suite/all gtest (DAP) + refresh ticks")
-
-			-- Keep tD as a raw “custom args” DAP session (power tool)
-			map("<leader>tD", function()
-				if not focus_cpp_window() then
-					vim.notify("[tests.lua] No C/C++ window found in this tab", vim.log.levels.ERROR)
-					return
-				end
-
-				relink_gtest_exec()
-
-				local buf = vim.api.nvim_buf_get_name(0)
-				local root = project_root_for_buf(buf)
-				local program = root .. "/.neotest_gtest_exec"
-
-				if vim.loop.fs_stat(program) == nil then
-					vim.notify(
-						"[dap] Missing " .. program .. " (run :NeotestGtestLink or build tests)",
-						vim.log.levels.ERROR
-					)
-					return
-				end
-
-				local dap = require("dap")
-				local args_input = vim.fn.input("[tD] Args: ", "--gtest_filter=*")
-				local args = vim.split(args_input, " ", { trimempty = true })
-
-				pcall(function()
-					require("dapui").open()
-				end)
-
-				dap.run({
-					name = "Debug gtest (custom args)",
-					type = "cpp",
-					request = "launch",
-					program = program,
-					cwd = root,
-					stopOnEntry = false,
-					args = args,
-				})
-			end, "Test: Debug gtest (custom args)")
+			-- debug (direct DAP, stable)
+			map("<leader>td", debug_nearest_gtest, "Test: Debug nearest gtest (DAP)")
+			map("<leader>tG", debug_gtest_suite_or_all, "Test: Debug suite/all gtest (DAP)")
+			map("<leader>tD", debug_gtest_custom_args, "Test: Debug gtest (custom args)")
 
 			-- Make <leader>t* behave sensibly inside the neotest summary buffer
 			vim.api.nvim_create_autocmd("FileType", {

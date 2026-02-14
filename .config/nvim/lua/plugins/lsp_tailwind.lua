@@ -1,7 +1,9 @@
 -- lua/plugins/lsp_tailwind.lua
 return {
 	"neovim/nvim-lspconfig",
-	dependencies = { "williamboman/mason-lspconfig.nvim" },
+	-- Mason is not installed in this sandbox, so we drop the mason‑lspconfig
+	-- dependency. Tailwind LSP works fine without it.
+	dependencies = {},
 	config = function()
 		local lspconfig = require("lspconfig")
 		local util = require("lspconfig.util")

@@ -25,6 +25,18 @@ export ICLOUD="$HOME/iCloud"
 export GOOGLE="$HOME/Library/CloudStorage/GoogleDrive-shane@betterfasterfurther.com/My Drive"
 export CODING="$HOME/Documents/Coding"
 export NEOVIM="$HOME/.config/nvim"
+export TMPDIR="${HOME}/.config/nvim/tmp"
+export NVIM_LOG_FILE="${TMPDIR}/nvim.log"
+# export NVIM_LISTEN_ADDRESS="${TMPDIR}/nvim.sock"
+
+# -----------------------------------------------------------------
+# XDG directories – point every runtime path to a writable folder
+# inside the config tree (the folder you created and gave write access to)
+# -----------------------------------------------------------------
+export XDG_RUNTIME_DIR="${HOME}/.config/nvim/tmp"
+export XDG_CACHE_HOME="${HOME}/.config/nvim"
+export XDG_STATE_HOME="${HOME}/.config/nvim"
+export XDG_DATA_HOME="${HOME}/.config/nvim"
 
 # Secrets (NOT committed)
 [ -f "$HOME/.zsh_secrets" ] && source "$HOME/.zsh_secrets"

@@ -78,6 +78,14 @@ return {
 			},
 
 			spec = {
+
+				----------------------------------------------------------------------
+				-- ASM
+				----------------------------------------------------------------------
+				{ "<leader>a", group = "+asm" },
+				{ "<leader>ad", desc = "DAP: Build & Debug ARM64 Assembly" },
+				{ "<leader>ar", desc = "DAP: Rerun last debug session" },
+
 				----------------------------------------------------------------------
 				-- FILE
 				----------------------------------------------------------------------
@@ -98,13 +106,6 @@ return {
 				{ "<leader>bn", "<cmd>bnext<CR>", desc = "Next buffer" },
 				{ "<leader>bp", "<cmd>bprevious<CR>", desc = "Prev buffer" },
 				{ "<leader>bd", "<cmd>bd<CR>", desc = "Delete buffer" },
-
-				----------------------------------------------------------------------
-				-- ALTERNATE
-				----------------------------------------------------------------------
-				{ "<leader>a", group = "+alternate" },
-				{ "<leader>ac", "<cmd>GoToCSS<CR>", desc = "Go to CSS file" },
-				{ "<leader>ah", "<cmd>GoToHTML<CR>", desc = "Go to HTML file" },
 
 				----------------------------------------------------------------------
 				-- WINDOWS
@@ -255,51 +256,6 @@ return {
 				-- DEBUG
 				----------------------------------------------------------------------
 				{ "<leader>d", group = "+debug" },
-				{ "<leader>db", "<cmd>DapToggleBreakpoint<CR>", desc = "Toggle breakpoint" },
-				{
-					"<leader>dB",
-					"<cmd>lua require('dap').set_breakpoint(vim.fn.input('Breakpoint condition: '))<CR>",
-					desc = "Conditional breakpoint",
-				},
-				{ "<leader>dc", "<cmd>DapContinue<CR>", desc = "Continue" },
-				{ "<leader>do", "<cmd>DapStepOver<CR>", desc = "Step over" },
-				{ "<leader>di", "<cmd>DapStepInto<CR>", desc = "Step into" },
-				{ "<leader>dO", "<cmd>DapStepOut<CR>", desc = "Step out" },
-				{
-					"<leader>dr",
-					"<cmd>DapRestartFrame<CR>",
-					desc = "Restart frame",
-					cond = function()
-						return pcall(require, "dap")
-					end,
-				},
-				{ "<leader>dx", "<cmd>lua require('dap').terminate()<CR>", desc = "Terminate" },
-				{ "<leader>dl", "<cmd>lua require('dap').run_last()<CR>", desc = "Run last" },
-				{ "<leader>dh", "<cmd>lua require('dap.ui.widgets').hover()<CR>", desc = "Hover variables" },
-				{ "<leader>dp", "<cmd>lua require('dap.ui.widgets').preview()<CR>", desc = "Preview variable" },
-				{
-					"<leader>df",
-					"<cmd>lua local w=require('dap.ui.widgets');w.centered_float(w.frames)<CR>",
-					desc = "Show frames",
-				},
-				{
-					"<leader>ds",
-					"<cmd>lua local w=require('dap.ui.widgets');w.centered_float(w.scopes)<CR>",
-					desc = "Show scopes",
-				},
-				{ "<leader>de", "<cmd>lua require('dapui').eval()<CR>", desc = "Eval expression" },
-				{
-					"<leader>du",
-					function()
-						local ok, dapui = pcall(require, "dapui")
-						if ok then
-							dapui.toggle()
-						else
-							vim.notify("dap-ui not installed", vim.log.levels.WARN)
-						end
-					end,
-					desc = "Toggle DAP UI",
-				},
 
 				----------------------------------------------------------------------
 				-- TEST

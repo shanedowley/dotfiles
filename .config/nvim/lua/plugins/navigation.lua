@@ -3,6 +3,7 @@ return {
 	{
 		"phaazon/hop.nvim",
 		branch = "v2",
+		cond = false, -- disabled: healthcheck crashes in sandbox (report_start nil)
 		config = function()
 			require("hop").setup({ keys = "etovxqpdygfblzhckisuran" })
 

@@ -1,16 +1,52 @@
--- ~/.config/nvim/init.lua — Main Neovim configuration
--- Modular layout:
---   lua/keymaps.lua        → all keymaps
---   lua/plugins/*.lua      → plugin specs (Lazy)
---   lua/commands.lua       → custom user commands (PDF tools, RmApp, etc.)
---   lua/themes/*           → theme definitions
+-- Set <Leader> key
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
 
--- turn on Neovim's module cache
-if vim.loader then
-	vim.loader.enable()
+-- Simplified XDG configuration for the read‑only sandbox.
+-- All XDG directories point to a single writable folder inside the config
+-- tree (`~/.config/nvim/tmp`).
+
+local function safe_require(mod)
+	local ok, m = pcall(require, mod)
+	if ok then
+		return m
+	end
+	vim.schedule(function()
+		vim.notify(("safe_require failed: %s\n%s"):format(mod, m), vim.log.levels.WARN)
+	end)
+	return nil
 end
 
--- Silence vim.tbl_islist deprecation on 0.10+ by delegating to vim.islist
+local _xdg_tmp = vim.fn.stdpath("config") .. "/tmp"
+vim.env.XDG_CACHE_HOME = _xdg_tmp
+vim.env.XDG_STATE_HOME = _xdg_tmp
+vim.env.XDG_DATA_HOME = _xdg_tmp
+--vim.env.XDG_RUNTIME_DIR = _xdg_tmp  -- put this back if issues
+
+-- Point generic temporary locations to the same writable folder.
+vim.env.TMPDIR = _xdg_tmp
+vim.env.NVIM_LOG_FILE = _xdg_tmp .. "/nvim.log"
+
+local _nvim_tmp = _xdg_tmp .. "/nvim"
+vim.fn.mkdir(_xdg_tmp, "p")
+pcall(vim.fn.mkdir, _nvim_tmp, "p") -- creates ~/.config/nvim/tmp/nvim
+
+-- Ensure each Neovim instance has a unique server socket (prevents "address already in use")
+vim.env.NVIM_LISTEN_ADDRESS = _nvim_tmp .. "/nvim-" .. tostring(vim.fn.getpid()) .. ".sock"
+
+vim.g.base46_cache = _nvim_tmp -- harmless even if unused
+
+--- Disable health checks that try to write to these locations.
+vim.g.loaded_health = 1
+
+vim.env.PATH = vim.env.PATH .. ":/opt/homebrew/opt/llvm/bin"
+
+-- Keep swapfile and ShaDa disabled (they would also need writable paths).
+vim.o.swapfile = false
+vim.o.shada = ""
+vim.g.loaded_remote_plugins = 1
+
+-- Silence `vim.tbl_islist` deprecation on 0.10+.
 if vim.tbl_islist and vim.islist then
 	vim.tbl_islist = vim.islist
 end
@@ -18,15 +54,11 @@ end
 -- Ensure filetype detection is on
 vim.cmd("filetype plugin indent on")
 
--- Set <Leader> key
-vim.g.mapleader = " "
-vim.g.maplocalleader = " "
-
 -- Ensure timeouts are sane
 vim.o.timeout = true
 vim.o.timeoutlen = 300 -- 300ms for key sequences
 
--- Curor settigns and behaviours
+-- Curor settings and behaviours
 vim.o.guicursor = table.concat({
 	"n-v:block", -- Normal + Visual = block
 	"i:hor20", -- Insert = horizontal underline (20% height)
@@ -80,11 +112,11 @@ if vim.g.neovide then
 		if file ~= "" then
 			local mode = vim.api.nvim_get_mode().mode
 			title = string.format("nvim — %s/%s [%s]", cwd, file, mode)
+			vim.o.titlestring = title
+		else
+			vim.o.titlestring = "nvim — " .. cwd
 		end
-
-		vim.o.titlestring = title
 	end
-
 	-- run once at startup
 	update_title()
 
@@ -121,13 +153,9 @@ pcall(function()
 	vim.opt.mousescroll = "ver:3,hor:6"
 end)
 
--- ✅ Load keymaps (we will recreate this file next)
-require("keymaps")
--- ✅ Load custom user commands
-require("commands")
+safe_require("commands")
 
--- Load Lazy.nvim and plugin specs
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+local lazypath = vim.fn.stdpath("config") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
 	vim.fn.system({
 		"git",
@@ -140,16 +168,73 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
--- Set up Lazy and load plugins from `lua/plugins/*.lua`
-require("lazy").setup("plugins")
+local root = vim.fn.stdpath("config") .. "/tmp/nvim/lazy"
+pcall(vim.fn.mkdir, root, "p")
+
+require("lazy").setup("plugins", {
+	root = root,
+	lockfile = vim.fn.stdpath("config") .. "/lazy-lock.json",
+	performance = { cache = { enabled = false } },
+	rocks = {
+		enabled = false, -- completely turn off luarocks support
+		hererocks = false, -- do not try to bootstrap hererocks
+	},
+})
+
+-- Keymaps: single entrypoint
+safe_require("keymaps.init")
+
+-- -----------------------------------------------------------------
+-- LSP: clangd (Neovim 0.11+ native config; fallback to nvim-lspconfig)
+-- -----------------------------------------------------------------
+
+local caps = vim.lsp.protocol.make_client_capabilities()
+local ok_cmp, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
+if ok_cmp then
+	caps = cmp_nvim_lsp.default_capabilities(caps)
+end
+
+local function clangd_root(fname)
+	local projects = "/Users/shane/Documents/Coding/c-projects"
+	if fname:sub(1, #projects) == projects then
+		return projects
+	end
+	local root = vim.fs.root(fname, { "compile_commands.json", "compile_flags.txt", "CMakeLists.txt", ".git" })
+	return root or vim.fs.dirname(fname)
+end
+
+local clangd_cfg = {
+	capabilities = caps,
+	root_dir = clangd_root,
+	filetypes = { "c", "cpp", "objc", "objcpp" },
+}
+
+-- Neovim 0.11+ way
+if vim.lsp.config and vim.lsp.enable then
+	vim.lsp.config.clangd = clangd_cfg
+	vim.lsp.enable("clangd")
+else
+	-- Fallback for older setups
+	local ok_lspconfig, lspconfig = pcall(require, "lspconfig")
+	if ok_lspconfig then
+		lspconfig.clangd.setup(clangd_cfg)
+	end
+end
+
+-- Switch to the Tokyonight theme (installed as `folke/tokyonight.nvim`).
+-- The plugin supports several styles; we pick the "storm" variant which
+-- matches the mapping in the UI‑sync block below.
+vim.g.tokyonight_style = "storm"
+vim.cmd("colorscheme tokyonight")
 
 -- Load Codex local integration
-require("codex").setup()
+pcall(function()
+	require("codex").setup()
+end)
 
 -- Soft wrap for coding
 vim.opt.wrap = true -- enable visual wrap
 vim.opt.linebreak = true -- wrap at word boundaries
-
 vim.opt.list = true
 vim.opt.listchars = {
 	eol = "↴", -- end of line
@@ -195,66 +280,6 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 	end,
 	desc = "Sync iTerm2 preset with active Neovim colorscheme",
 })
-
---  Wire ToggleTerm into C/C++ workflow
--- Only run if toggleterm is available
-local ok, toggleterm = pcall(require, "toggleterm")
-if not ok then
-	return
-end
-
-local Terminal = require("toggleterm.terminal").Terminal
-
--- 1) Compile & run *current* C/C++ file
-local function build_and_run_current_cpp()
-	-- Save the file first
-	vim.cmd("w")
-
-	local file = vim.fn.expand("%:p") -- full path
-	local base = vim.fn.expand("%:t:r") -- filename without extension
-	local dir = vim.fn.expand("%:p:h") -- directory of file
-
-	-- Adjust this to your preferred flags
-	local cmd = string.format(
-		"cd %q && g++ -std=c++20 -O2 %q -o %q && ./%q; echo ''; echo '--- Press any key to close ---'; read -n 1",
-		dir,
-		file,
-		base,
-		base
-	)
-
-	local term = Terminal:new({
-		cmd = cmd,
-		direction = "float",
-		close_on_exit = false,
-	})
-
-	term:toggle()
-end
-
--- 2) Run `make` (or whatever build command) in project root
-local function build_project_with_make()
-	-- Detect current working dir (usually project root if you opened Neovim there)
-	local cwd = vim.loop.cwd()
-
-	local cmd = string.format("cd %q && make; echo ''; echo '--- Press any key to close ---'; read -n 1", cwd)
-
-	local term = Terminal:new({
-		cmd = cmd,
-		direction = "horizontal",
-		size = 15,
-		close_on_exit = false,
-	})
-
-	term:toggle()
-end
-
--- Keymaps
--- Use F5 like a “real IDE” for build & run
-vim.keymap.set("n", "<F5>", build_and_run_current_cpp, { desc = "Build & run current C/C++ file" })
-
-vim.keymap.set("n", "<leader>rb", build_and_run_current_cpp, { desc = "Build & run current C/C++ file" })
-vim.keymap.set("n", "<leader>rm", build_project_with_make, { desc = "Run make in project root" })
 
 -- Highlight curly quotes in Lua config automatically
 local group = vim.api.nvim_create_augroup("HighlightCurlyQuotes", { clear = true })
