@@ -1,6 +1,10 @@
 return {
 	"akinsho/toggleterm.nvim",
 	version = "*",
+	keys = {
+		"<leader>tt",
+		"<F12>",
+	},
 	config = function()
 		local ok_tt, toggleterm = pcall(require, "toggleterm")
 		if not ok_tt then
@@ -65,6 +69,11 @@ return {
 		end
 
 		vim.keymap.set({ "n", "t" }, "<leader>tt", quake_toggle, {
+			noremap = true,
+			silent = true,
+			desc = "Toggle Quake-style terminal",
+		})
+		vim.keymap.set({ "n", "t" }, "<F12>", quake_toggle, {
 			noremap = true,
 			silent = true,
 			desc = "Toggle Quake-style terminal",

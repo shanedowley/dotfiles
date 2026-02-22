@@ -28,6 +28,7 @@ return {
 
 	{
 		"nvim-lualine/lualine.nvim",
+		event = "VeryLazy",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
 			require("lualine").setup({
@@ -50,6 +51,7 @@ return {
 
 	{
 		"NvChad/nvim-colorizer.lua",
+		event = "VeryLazy",
 		config = function()
 			require("colorizer").setup({
 				filetypes = { "*" },

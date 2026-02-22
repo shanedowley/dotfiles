@@ -122,8 +122,6 @@ vim.opt.mousemoveevent = true -- send mouse-move events to Neovim
 vim.opt.mousefocus = true -- focus the split under the mouse
 vim.opt.mousescroll = "ver:3,hor:6"
 
-safe_require("commands")
-
 local lazypath = vim.fn.stdpath("config") .. "/lazy/lazy.nvim"
 local uv = vim.uv or vim.loop
 if not uv.fs_stat(lazypath) then
