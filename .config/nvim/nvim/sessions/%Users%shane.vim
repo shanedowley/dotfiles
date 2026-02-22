@@ -13,7 +13,7 @@ if &shortmess =~ 'A'
 else
   set shortmess=aoO
 endif
-badd +0 .zshrc
+badd +28 .zshrc
 argglobal
 %argdel
 $argadd .zshrc

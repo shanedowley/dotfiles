@@ -25,9 +25,8 @@ export ICLOUD="$HOME/iCloud"
 export GOOGLE="$HOME/Library/CloudStorage/GoogleDrive-shane@betterfasterfurther.com/My Drive"
 export CODING="$HOME/Documents/Coding"
 export NEOVIM="$HOME/.config/nvim"
-export TMPDIR="${HOME}/.config/nvim/tmp"
-export NVIM_LOG_FILE="${TMPDIR}/nvim.log"
-
+export TMPDIR="$HOME/tmp"
+unset NVIM_LOG_FILE
 
 # Secrets (NOT committed)
 [ -f "$HOME/.zsh_secrets" ] && source "$HOME/.zsh_secrets"
