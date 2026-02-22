@@ -108,12 +108,10 @@ alias webdev="npm run dev"
 # Use Homebrew's clang to build and macOS SDK to link
 alias clangsys='clang -target arm64-apple-macos -isysroot $(xcrun --show-sdk-path)'
 
-
 # --- Tmux setup ---
-if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ] && [ -z "$NO_TMUX" ]; then
-  tmux new-session -A -s main
-fi
-
+# if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ] && [ -z "$NO_TMUX" ]; then
+#   tmux new-session -A -s main
+# fi
 
 # ---- My Dotfiles Set Up ----
 # Git repo for my dotfiles:
