@@ -27,16 +27,7 @@ export CODING="$HOME/Documents/Coding"
 export NEOVIM="$HOME/.config/nvim"
 export TMPDIR="${HOME}/.config/nvim/tmp"
 export NVIM_LOG_FILE="${TMPDIR}/nvim.log"
-# export NVIM_LISTEN_ADDRESS="${TMPDIR}/nvim.sock"
 
-# -----------------------------------------------------------------
-# XDG directories – point every runtime path to a writable folder
-# inside the config tree (the folder you created and gave write access to)
-# -----------------------------------------------------------------
-export XDG_RUNTIME_DIR="${HOME}/.config/nvim/tmp"
-export XDG_CACHE_HOME="${HOME}/.config/nvim"
-export XDG_STATE_HOME="${HOME}/.config/nvim"
-export XDG_DATA_HOME="${HOME}/.config/nvim"
 
 # Secrets (NOT committed)
 [ -f "$HOME/.zsh_secrets" ] && source "$HOME/.zsh_secrets"
@@ -58,18 +49,6 @@ setopt HIST_SAVE_NO_DUPS      # don't save duplicates to file
 setopt HIST_REDUCE_BLANKS     # trim extraneous spaces
 setopt HIST_VERIFY            # confirm before executing recalled history
 setopt EXTENDED_HISTORY       # include timestamps
-
-
-# ---- iterm2 Set Up ----
-# Set iterm2's tab title and cursor
-function set_iterm_title_and_cursor() {
-  # Set iterm2's title to "user: /full/path"
-  echo -ne "\033]0;${USER}: ${PWD}\007"
-
-  # Set iterm2's cursor to underline style on every prompt
-  echo -ne "\e[4 q"
-}
-precmd_functions+=(set_iterm_title_and_cursor)
 
 
 # ---- Aliases Set Up ----

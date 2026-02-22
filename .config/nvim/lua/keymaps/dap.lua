@@ -1,21 +1,21 @@
-local function dap()
-	local ok, m = pcall(require, "dap")
-	return ok and m or nil
+local function load_dap()
+	pcall(function()
+		local ok, lazy = pcall(require, "lazy")
+		if ok then
+			lazy.load({ plugins = { "nvim-dap" } })
+		end
+	end)
 end
 
-local function dapui()
-	local ok, m = pcall(require, "dapui")
-	return ok and m or nil
+local function dap_or_nil()
+	load_dap()
+	local ok, d = pcall(require, "dap")
+	return ok and d or nil
 end
 
-local function widgets()
-	local ok, m = pcall(require, "dap.ui.widgets")
-	return ok and m or nil
-end
-
-local function with_dap(fn, msg)
+local function with_dap_loaded(fn, msg)
 	return function()
-		local d = dap()
+		local d = dap_or_nil()
 		if not d then
 			if msg then
 				vim.notify(msg, vim.log.levels.WARN)
@@ -26,10 +26,30 @@ local function with_dap(fn, msg)
 	end
 end
 
+local function dapui()
+	pcall(function()
+		local ok, lazy = pcall(require, "lazy")
+		if ok then
+			lazy.load({ plugins = { "nvim-dap-ui" } })
+		end
+	end)
+	local ok, m = pcall(require, "dapui")
+	return ok and m or nil
+end
+
+local function widgets()
+	local dap = dap_or_nil()
+	if not dap then
+		return nil
+	end
+	local ok, m = pcall(require, "dap.ui.widgets")
+	return ok and m or nil
+end
+
 -- Function keys
 vim.keymap.set("n", "<F5>", function()
-	local ok, dap = pcall(require, "dap")
-	if not ok then
+	local dap = dap_or_nil()
+	if not dap then
 		vim.notify("nvim-dap not loaded yet", vim.log.levels.WARN)
 		return
 	end
@@ -59,7 +79,7 @@ end, { desc = "DAP: Continue / Start (smart)" })
 vim.keymap.set(
 	"n",
 	"<F10>",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.step_over()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Step Over" }
@@ -67,7 +87,7 @@ vim.keymap.set(
 vim.keymap.set(
 	"n",
 	"<F11>",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.step_into()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Step Into" }
@@ -75,37 +95,65 @@ vim.keymap.set(
 vim.keymap.set(
 	"n",
 	"<F12>",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.step_out()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Step Out" }
 )
 
--- Breakpoints (keep them inside the Debug menu)
+-- Breakpoints (runtime only, pure nvim-dap)
 vim.keymap.set(
 	"n",
 	"<leader>db",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.toggle_breakpoint()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Toggle Breakpoint" }
 )
-
 vim.keymap.set(
 	"n",
 	"<leader>dB",
-	with_dap(function(d)
-		d.set_breakpoint(vim.fn.input("Breakpoint condition: "))
+	with_dap_loaded(function(d)
+		local cond = vim.fn.input("Breakpoint condition: ")
+		if cond == nil or cond == "" then
+			return
+		end
+		d.set_breakpoint(cond)
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Conditional Breakpoint" }
 )
-
--- Add logpoints and cleaer breakpoints
+vim.keymap.set(
+	"n",
+	"<leader>dn",
+	with_dap_loaded(function(dap)
+		-- Stop any neotest runner first (prevents gtest JSON read race)
+		pcall(function()
+			local neotest = require("neotest")
+			if neotest and neotest.run and neotest.run.stop then
+				neotest.run.stop()
+			end
+		end)
+		-- Terminate any active DAP session, then start fresh.
+		if dap.session() then
+			pcall(dap.terminate)
+			vim.defer_fn(function()
+				dap.continue()
+			end, 80)
+		else
+			dap.continue()
+		end
+	end, "nvim-dap not loaded yet"),
+	{ desc = "DAP: New session (terminate + start)" }
+)
 vim.keymap.set(
 	"n",
 	"<leader>dL",
-	with_dap(function(d)
-		d.set_breakpoint(nil, nil, vim.fn.input("Log point message: "))
+	with_dap_loaded(function(d)
+		local msg = vim.fn.input("Log point message: ")
+		if msg == nil or msg == "" then
+			return
+		end
+		d.set_breakpoint(nil, nil, msg)
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Log Point" }
 )
@@ -113,11 +161,11 @@ vim.keymap.set(
 vim.keymap.set(
 	"n",
 	"<leader>dC",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.clear_breakpoints()
-		vim.notify("DAP: Cleared all breakpoints", vim.log.levels.INFO)
+		vim.notify("DAP: Cleared all runtime breakpoints", vim.log.levels.INFO)
 	end, "nvim-dap not loaded yet"),
-	{ desc = "DAP: Clear Breakpoints" }
+	{ desc = "DAP: Clear ALL breakpoints (runtime)" }
 )
 
 -- Widgets / inspection
@@ -153,7 +201,7 @@ end, { desc = "DAP: Show scopes" })
 vim.keymap.set(
 	"n",
 	"<leader>dr",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.restart_frame()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Restart frame" }
@@ -161,41 +209,15 @@ vim.keymap.set(
 vim.keymap.set(
 	"n",
 	"<leader>dx",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.terminate()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Terminate" }
 )
-
-vim.keymap.set("n", "<leader>dn", function()
-	local ok, dap = pcall(require, "dap")
-	if not ok then
-		return
-	end
-
-	-- Stop any neotest runner first (same reason as dQ).
-	pcall(function()
-		local neotest = require("neotest")
-		if neotest and neotest.run and neotest.run.stop then
-			neotest.run.stop()
-		end
-	end)
-
-	-- Terminate any active DAP session, then start fresh.
-	if dap.session() then
-		pcall(dap.terminate)
-		vim.defer_fn(function()
-			dap.continue()
-		end, 80)
-	else
-		dap.continue()
-	end
-end, { desc = "DAP: New session (terminate + start)" })
-
 vim.keymap.set(
 	"n",
 	"<leader>dc",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.continue()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Continue / Start" }
@@ -203,7 +225,7 @@ vim.keymap.set(
 vim.keymap.set(
 	"n",
 	"<leader>do",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.step_over()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Step over" }
@@ -211,7 +233,7 @@ vim.keymap.set(
 vim.keymap.set(
 	"n",
 	"<leader>di",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.step_into()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Step into" }
@@ -219,30 +241,15 @@ vim.keymap.set(
 vim.keymap.set(
 	"n",
 	"<leader>dO",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.step_out()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Step out" }
 )
-
-vim.keymap.set("n", "<leader>dl", function()
-	local ok, dap = pcall(require, "dap")
-	if not ok then
-		return
-	end
-
-	if dap.session() then
-		vim.notify("DAP session already active; terminate it first (dQ) or use <leader>dn", vim.log.levels.INFO)
-		return
-	end
-
-	dap.run_last()
-end, { desc = "DAP: Run last (safe)" })
-
 vim.keymap.set(
 	"n",
 	"<leader>dj",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.down()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Frame down" }
@@ -250,7 +257,7 @@ vim.keymap.set(
 vim.keymap.set(
 	"n",
 	"<leader>dk",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.up()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Frame up" }
@@ -259,7 +266,7 @@ vim.keymap.set(
 vim.keymap.set(
 	"n",
 	"<leader>dR",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.repl.open()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Open REPL" }
@@ -273,15 +280,17 @@ vim.keymap.set("n", "<leader>dQ", function()
 			neotest.run.stop()
 		end
 	end)
-
 	-- 2) Then terminate DAP (defer slightly to let neotest unwind)
 	vim.defer_fn(function()
+		local dap = dap_or_nil()
+		if dap then
+			pcall(dap.terminate)
+		end
 		pcall(function()
-			require("dap").terminate()
-		end)
-
-		pcall(function()
-			require("dapui").close()
+			local ui = dapui()
+			if ui then
+				ui.close()
+			end
 		end)
 	end, 50)
 end, { desc = "DAP: Terminate + close UI (safe)" })
@@ -305,7 +314,7 @@ end, { desc = "DAP: Build & Debug ARM64 Assembly" })
 vim.keymap.set(
 	"n",
 	"<leader>ar",
-	with_dap(function(d)
+	with_dap_loaded(function(d)
 		d.run_last()
 	end, "nvim-dap not loaded yet"),
 	{ desc = "DAP: Rerun last debug session" }

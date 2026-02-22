@@ -132,7 +132,7 @@ return {
 				{ "<leader>gB", "<cmd>Git blame<CR>", desc = "Git: blame (split)" },
 				{ "<leader>gd", "<cmd>Gitsigns diffthis<CR>", desc = "Diff file" },
 				{ "<leader>gg", "<cmd>Git<CR>", desc = "Git: status (Fugitive)" },
-				{ "<leader>gl", "<cmd>LazyGitIterm<CR>", desc = "Git: Lazygit (iTerm2 tab)" },
+				{ "<leader>gl", "<cmd>LazyGit<CR>", desc = "Git: Lazygit" },
 				{ "<leader>gn", "<cmd>Gitsigns next_hunk<CR>", desc = "Next hunk" },
 				{ "<leader>gN", "<cmd>Gitsigns prev_hunk<CR>", desc = "Prev hunk" },
 				{ "<leader>gr", "<cmd>Gitsigns reset_hunk<CR>", desc = "Reset hunk" },
@@ -241,16 +241,6 @@ return {
 					end,
 					desc = "Prev diagnostic",
 				},
-
-				----------------------------------------------------------------------
-				-- CODEX
-				----------------------------------------------------------------------
-				{ "<leader>c", group = "+codex" },
-				{ "<leader>cf", desc = "Run on entire file" },
-				{ "<leader>cl", desc = "Run on current line" },
-				{ "<leader>cc", desc = "Run on selection" },
-				{ "<leader>cp", desc = "Patch file (diff)" },
-				{ "<leader>cs", desc = "Scratchpad prompt" },
 
 				----------------------------------------------------------------------
 				-- DEBUG

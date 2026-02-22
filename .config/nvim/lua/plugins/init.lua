@@ -9,6 +9,7 @@ return {
 	{ import = "plugins.asm" },
 	{ import = "plugins.vimtex" },
 	{ import = "plugins.colorscheme" },
+	{ import = "plugins.codex" },
 
 	-- ⏱ Lazy-load candidates
 	{ import = "plugins.tests", cmd = "TestNearest" },

@@ -3,7 +3,99 @@ return {
 	{
 		"nvim-neotest/neotest",
 		version = "v4.*",
-		lazy = false, -- ensure setup + keymaps are always available
+		lazy = true,
+		keys = {
+			{
+				"<leader>tn",
+				function()
+					local nt = require("neotest")
+					nt.summary.open()
+					nt.run.run()
+				end,
+				desc = "Test: Run nearest",
+			},
+			{
+				"<leader>tf",
+				function()
+					local nt = require("neotest")
+					nt.summary.open()
+					nt.run.run(vim.fn.expand("%:p"))
+				end,
+				desc = "Test: Run file",
+			},
+			{
+				"<leader>ta",
+				function()
+					if _G.NeotestRunProject then
+						_G.NeotestRunProject()
+						return
+					end
+					local nt = require("neotest")
+					nt.summary.open()
+					nt.run.run(vim.loop.cwd())
+				end,
+				desc = "Test: Run all (project)",
+			},
+
+			{
+				"<leader>tR",
+				function()
+					local nt = require("neotest")
+					nt.summary.open()
+					nt.run.run_last()
+				end,
+				desc = "Test: Run last",
+			},
+			{
+				"<leader>ts",
+				function()
+					require("neotest").summary.toggle()
+				end,
+				desc = "Test: Toggle summary",
+			},
+			{
+				"<leader>to",
+				function()
+					require("neotest").output.open({ enter = true })
+				end,
+				desc = "Test: Show output",
+			},
+			{
+				"<leader>tO",
+				function()
+					require("neotest").output_panel.toggle()
+				end,
+				desc = "Test: Toggle output panel",
+			},
+			{
+				"<leader>td",
+				function()
+					if _G.NeotestDebugNearest then
+						_G.NeotestDebugNearest()
+					end
+				end,
+				desc = "Test: Debug nearest gtest (DAP) + refresh ticks",
+			},
+			{
+				"<leader>tG",
+				function()
+					if _G.NeotestDebugSuite then
+						_G.NeotestDebugSuite()
+					end
+				end,
+				desc = "Test: Debug suite/all gtest (DAP) + refresh ticks",
+			},
+			{
+				"<leader>tD",
+				function()
+					if _G.NeotestDebugCustom then
+						_G.NeotestDebugCustom()
+					end
+				end,
+				desc = "Test: Debug gtest (custom args)",
+			},
+		},
+
 		dependencies = {
 			"nvim-lua/plenary.nvim",
 			"nvim-treesitter/nvim-treesitter",
@@ -20,6 +112,15 @@ return {
 		},
 
 		config = function()
+			local function load_lazy(name)
+				local ok, lazy = pcall(require, "lazy")
+				if ok then
+					pcall(function()
+						lazy.load({ plugins = { name } })
+					end)
+				end
+			end
+
 			local ok_neotest, neotest = pcall(require, "neotest")
 			if not ok_neotest then
 				vim.notify("[tests.lua] neotest NOT available", vim.log.levels.ERROR)
@@ -197,64 +298,9 @@ return {
 			end
 			vim.api.nvim_create_user_command("NeotestGtestLink", relink_gtest_exec, {})
 
-			-- Runner that shows summary
-			local function run_and_show(pos_or_opts)
-				neotest.summary.open()
-				neotest.run.run(pos_or_opts or {})
-			end
-
-			-- Keymaps
-			local map = function(lhs, rhs, desc)
-				vim.keymap.set("n", lhs, rhs, { desc = desc, silent = true })
-			end
-
-			map("<leader>tn", function()
-				relink_gtest_exec()
-				if vim.bo.filetype == "neotest-summary" then
-					vim.cmd("wincmd p")
-				end
-				run_and_show()
-			end, "Test: Run nearest")
-
-			map("<leader>tf", function()
-				relink_gtest_exec()
-				if vim.bo.filetype == "neotest-summary" then
-					vim.cmd("wincmd p")
-				end
-				run_and_show(vim.fn.expand("%:p"))
-			end, "Test: Run file")
-
-			map("<leader>ta", function()
-				local buf = vim.api.nvim_buf_get_name(0)
-				local root = lib.files.match_root_pattern(
-					"compile_commands.json",
-					"compile_flags.txt",
-					"CMakeLists.txt",
-					".clangd",
-					".git"
-				)(buf ~= "" and buf or vim.loop.cwd()) or vim.loop.cwd()
-
-				neotest.summary.open()
-				neotest.run.run(root)
-			end, "Test: Run all (project)")
-
-			map("<leader>tR", function()
-				neotest.run.run_last()
-			end, "Test: Run last")
-			map("<leader>ts", function()
-				neotest.summary.toggle()
-			end, "Test: Toggle summary")
-			map("<leader>to", function()
-				neotest.output.open({ enter = true })
-			end, "Test: Show output")
-			map("<leader>tO", function()
-				neotest.output_panel.toggle()
-			end, "Test: Toggle output panel")
-			map("<leader>tL", relink_gtest_exec, "Test: Relink .neotest_gtest_exec")
-
-			-- --------
+			-- ------------------------------------------
 			-- DAP debug helpers (stable) + tick refresh
-			-- --------
+			-- ------------------------------------------
 
 			local function current_gtest_suite()
 				local bufnr = vim.api.nvim_get_current_buf()
@@ -305,7 +351,15 @@ return {
 				)(buf ~= "" and buf or vim.loop.cwd()) or vim.loop.cwd()
 			end
 
+			_G.NeotestRunProject = function()
+				local buf = vim.api.nvim_buf_get_name(0)
+				local root = project_root_for_buf(buf)
+				neotest.summary.open()
+				neotest.run.run(root)
+			end
+
 			local function dap_run_and_refresh(refresh_fn, dap_run_fn)
+				load_lazy("nvim-dap")
 				local ok_dap, dap = pcall(require, "dap")
 				if not ok_dap then
 					vim.notify("[tests.lua] nvim-dap not available", vim.log.levels.ERROR)
@@ -351,6 +405,7 @@ return {
 					return
 				end
 
+				load_lazy("nvim-dap")
 				local dap = require("dap")
 				local filter = nearest_gtest_filter()
 				local default_args = filter and ("--gtest_filter=" .. filter) or "--gtest_filter=*"
@@ -358,6 +413,7 @@ return {
 				local args = vim.split(args_input, " ", { trimempty = true })
 
 				pcall(function()
+					load_lazy("nvim-dap-ui")
 					require("dapui").open()
 				end)
 
@@ -398,6 +454,7 @@ return {
 					return
 				end
 
+				load_lazy("nvim-dap")
 				local dap = require("dap")
 
 				local suite = current_gtest_suite()
@@ -407,6 +464,7 @@ return {
 
 				neotest.summary.open()
 				pcall(function()
+					load_lazy("nvim-dap-ui")
 					require("dapui").open()
 				end)
 
@@ -427,12 +485,9 @@ return {
 				end)
 			end
 
-			-- ✅ Your hardened mappings:
-			map("<leader>td", debug_nearest_gtest_dap, "Test: Debug nearest gtest (DAP) + refresh ticks")
-			map("<leader>tG", debug_suite_gtest_dap, "Test: Debug suite/all gtest (DAP) + refresh ticks")
-
-			-- Keep tD as a raw “custom args” DAP session (power tool)
-			map("<leader>tD", function()
+			_G.NeotestDebugNearest = debug_nearest_gtest_dap
+			_G.NeotestDebugSuite = debug_suite_gtest_dap
+			_G.NeotestDebugCustom = function()
 				if not focus_cpp_window() then
 					vim.notify("[tests.lua] No C/C++ window found in this tab", vim.log.levels.ERROR)
 					return
@@ -452,11 +507,18 @@ return {
 					return
 				end
 
-				local dap = require("dap")
+				load_lazy("nvim-dap")
+				local ok_dap, dap = pcall(require, "dap")
+				if not ok_dap then
+					vim.notify("[tests.lua] nvim-dap not available", vim.log.levels.ERROR)
+					return
+				end
+
 				local args_input = vim.fn.input("[tD] Args: ", "--gtest_filter=*")
 				local args = vim.split(args_input, " ", { trimempty = true })
 
 				pcall(function()
+					load_lazy("nvim-dap-ui")
 					require("dapui").open()
 				end)
 
@@ -469,7 +531,7 @@ return {
 					stopOnEntry = false,
 					args = args,
 				})
-			end, "Test: Debug gtest (custom args)")
+			end
 
 			-- Make <leader>t* behave sensibly inside the neotest summary buffer
 			vim.api.nvim_create_autocmd("FileType", {

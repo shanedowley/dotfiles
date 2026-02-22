@@ -36,6 +36,34 @@ return {
 			dap.set_log_level("INFO")
 			dap.configurations = dap.configurations or {}
 
+			-- ------------------------------------------------
+			-- Persist breakpoints across Neovim restarts
+			-- ------------------------------------------------
+			local breakpoint_file = vim.fn.stdpath("state") .. "/dap_breakpoints.json"
+			local ok_bp, bp = pcall(require, "dap.breakpoints")
+
+			if ok_bp then
+				-- Load once when dap loads
+				pcall(function()
+					bp.load(breakpoint_file)
+				end)
+
+				local function save_breakpoints()
+					pcall(function()
+						bp.save(breakpoint_file)
+					end)
+				end
+
+				-- Save when a session ends
+				dap.listeners.after.event_terminated["dap_breakpoints_save"] = save_breakpoints
+				dap.listeners.after.event_exited["dap_breakpoints_save"] = save_breakpoints
+
+				-- Also save on editor exit (covers “no session” cases)
+				vim.api.nvim_create_autocmd("VimLeavePre", {
+					callback = save_breakpoints,
+				})
+			end
+
 			-- ---- Breakpoint UX: signs + highlights ----
 			vim.fn.sign_define("DapBreakpoint", { text = "●", texthl = "DiagnosticError" })
 			vim.fn.sign_define("DapBreakpointCondition", { text = "◆", texthl = "DiagnosticWarn" })

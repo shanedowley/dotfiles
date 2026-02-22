@@ -2,10 +2,6 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
--- Simplified XDG configuration for the read‑only sandbox.
--- All XDG directories point to a single writable folder inside the config
--- tree (`~/.config/nvim/tmp`).
-
 local function safe_require(mod)
 	local ok, m = pcall(require, mod)
 	if ok then
@@ -17,34 +13,13 @@ local function safe_require(mod)
 	return nil
 end
 
-local _xdg_tmp = vim.fn.stdpath("config") .. "/tmp"
-vim.env.XDG_CACHE_HOME = _xdg_tmp
-vim.env.XDG_STATE_HOME = _xdg_tmp
-vim.env.XDG_DATA_HOME = _xdg_tmp
---vim.env.XDG_RUNTIME_DIR = _xdg_tmp  -- put this back if issues
+-- Standard macOS XDG layout (no sandbox overrides)
+-- data  = ~/.local/share/nvim
+-- state = ~/.local/state/nvim
+-- cache = ~/.cache/nvim
 
--- Point generic temporary locations to the same writable folder.
-vim.env.TMPDIR = _xdg_tmp
-vim.env.NVIM_LOG_FILE = _xdg_tmp .. "/nvim.log"
-
-local _nvim_tmp = _xdg_tmp .. "/nvim"
-vim.fn.mkdir(_xdg_tmp, "p")
-pcall(vim.fn.mkdir, _nvim_tmp, "p") -- creates ~/.config/nvim/tmp/nvim
-
--- Ensure each Neovim instance has a unique server socket (prevents "address already in use")
-vim.env.NVIM_LISTEN_ADDRESS = _nvim_tmp .. "/nvim-" .. tostring(vim.fn.getpid()) .. ".sock"
-
-vim.g.base46_cache = _nvim_tmp -- harmless even if unused
-
---- Disable health checks that try to write to these locations.
-vim.g.loaded_health = 1
-
-vim.env.PATH = vim.env.PATH .. ":/opt/homebrew/opt/llvm/bin"
-
--- Keep swapfile and ShaDa disabled (they would also need writable paths).
-vim.o.swapfile = false
-vim.o.shada = ""
-vim.g.loaded_remote_plugins = 1
+vim.o.swapfile = true
+vim.o.shada = "!,'100,<50,s10,h"
 
 -- Silence `vim.tbl_islist` deprecation on 0.10+.
 if vim.tbl_islist and vim.islist then
@@ -128,8 +103,8 @@ end
 
 -- UI/UX tweaks
 vim.opt.number = true
+vim.opt.scrolloff = 4
 vim.opt.relativenumber = true
-vim.opt.mouse = "a"
 vim.opt.clipboard = "unnamedplus"
 vim.opt.termguicolors = true
 vim.opt.tabstop = 2
@@ -145,18 +120,13 @@ vim.opt.mousemodel = "popup" -- popup menu for clicks
 vim.opt.mousehide = true -- hide mouse cursor when typing
 vim.opt.mousemoveevent = true -- send mouse-move events to Neovim
 vim.opt.mousefocus = true -- focus the split under the mouse
-vim.opt.mousescroll = "ver:2,hor:6" -- finer trackpad wheel steps
-vim.opt.scrolloff = 4 -- keep context lines visible
-
--- Optional (if supported by your nvim): tune scroll steps
-pcall(function()
-	vim.opt.mousescroll = "ver:3,hor:6"
-end)
+vim.opt.mousescroll = "ver:3,hor:6"
 
 safe_require("commands")
 
 local lazypath = vim.fn.stdpath("config") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
+local uv = vim.uv or vim.loop
+if not uv.fs_stat(lazypath) then
 	vim.fn.system({
 		"git",
 		"clone",
@@ -168,21 +138,30 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
-local root = vim.fn.stdpath("config") .. "/tmp/nvim/lazy"
-pcall(vim.fn.mkdir, root, "p")
-
 require("lazy").setup("plugins", {
-	root = root,
 	lockfile = vim.fn.stdpath("config") .. "/lazy-lock.json",
-	performance = { cache = { enabled = false } },
+	performance = {
+		cache = { enabled = true }, -- good default; speeds startup
+	},
 	rocks = {
-		enabled = false, -- completely turn off luarocks support
-		hererocks = false, -- do not try to bootstrap hererocks
+		enabled = false,
+		hererocks = false,
 	},
 })
 
 -- Keymaps: single entrypoint
 safe_require("keymaps.init")
+
+-- Call themes
+pcall(function()
+	require("theme_cycle").setup({
+		{ scheme = "tokyonight-night", id = "tokyonight" },
+		{ scheme = "gruvbox", id = "gruvbox" },
+		{ scheme = "catppuccin", id = "catppuccin" },
+		{ scheme = "rose-pine", id = "rose-pine" },
+		{ scheme = "kanagawa", id = "kanagawa" },
+	}, "tokyonight-night")
+end)
 
 -- -----------------------------------------------------------------
 -- LSP: clangd (Neovim 0.11+ native config; fallback to nvim-lspconfig)
@@ -221,17 +200,6 @@ else
 	end
 end
 
--- Switch to the Tokyonight theme (installed as `folke/tokyonight.nvim`).
--- The plugin supports several styles; we pick the "storm" variant which
--- matches the mapping in the UI‑sync block below.
-vim.g.tokyonight_style = "storm"
-vim.cmd("colorscheme tokyonight")
-
--- Load Codex local integration
-pcall(function()
-	require("codex").setup()
-end)
-
 -- Soft wrap for coding
 vim.opt.wrap = true -- enable visual wrap
 vim.opt.linebreak = true -- wrap at word boundaries
@@ -256,30 +224,6 @@ vim.opt.smartcase = true -- ...unless search has capitals
 
 -- Scrolling comfort
 vim.opt.sidescrolloff = 8 -- same for left/right scrolling
-
--- Add your local theme folder to runtimepath
-vim.opt.rtp:append(vim.fn.stdpath("config") .. "/lua/themes/django-smooth")
-
--- 🖌️ Sync iTerm2 preset with active Neovim colorscheme
-local ui_group = vim.api.nvim_create_augroup("UI_AutoCmds", { clear = true })
-vim.api.nvim_create_autocmd("ColorScheme", {
-	group = ui_group,
-	callback = function()
-		local theme = vim.g.colors_name
-		local theme_map = {
-			["gruvbox"] = "Gruvbox Dark",
-			["tokyonight"] = "Tokyo Night Storm",
-			["catppuccin"] = "Catppuccin",
-			["rose-pine"] = "Rosé Pine (Main)",
-			["kanagawa"] = "Kanagawa Wave",
-		}
-		if theme and #theme > 0 then
-			local preset = theme_map[theme] or theme
-			vim.fn.jobstart({ "setiterm_theme", preset }, { detach = true })
-		end
-	end,
-	desc = "Sync iTerm2 preset with active Neovim colorscheme",
-})
 
 -- Highlight curly quotes in Lua config automatically
 local group = vim.api.nvim_create_augroup("HighlightCurlyQuotes", { clear = true })

@@ -1,29 +1,4 @@
 -- Consolidated Git tooling (gitsigns + lazygit + fugitive) without duplicate specs.
-local function open_lazygit()
-	pcall(vim.cmd.write)
-
-	local cwd = vim.fn.getcwd()
-	local root = cwd
-	local ok, out = pcall(vim.fn.systemlist, { "git", "-C", cwd, "rev-parse", "--show-toplevel" })
-	if ok and out and out[1] and out[1] ~= "" then
-		root = out[1]
-	end
-
-	local cmd = "cd " .. vim.fn.shellescape(root) .. " && lazygit"
-	local applescript = ([[osascript -e '
-    tell application "iTerm"
-      tell current window
-        create tab with default profile
-        tell current session
-          write text "%s"
-        end tell
-      end tell
-    end tell'
-  ]]):format(cmd:gsub('"', '\\"'))
-
-	os.execute(applescript)
-end
-
 return {
 	{
 		"lewis6991/gitsigns.nvim",
@@ -110,39 +85,13 @@ return {
 		end,
 	},
 
-	-- Lazygit launcher (iTerm2 tab)
 	{
 		"kdheepak/lazygit.nvim",
 		cmd = { "LazyGit", "LazyGitCurrentFile", "LazyGitFilter", "LazyGitFilterCurrentFile" },
-		keys = {},
+		keys = {
+			{ "<leader>gl", "<cmd>LazyGit<CR>", desc = "Git: Lazygit" },
+		},
 		dependencies = { "nvim-lua/plenary.nvim" },
-		init = function()
-			local function apply_mapping()
-				pcall(vim.keymap.del, "n", "<leader>gl")
-				vim.keymap.set("n", "<leader>gl", open_lazygit, {
-					desc = "Git: Lazygit (iTerm2 tab)",
-					silent = true,
-				})
-			end
-
-			vim.api.nvim_create_user_command("LazyGitIterm", open_lazygit, { desc = "Open Lazygit in iTerm2 tab" })
-
-			apply_mapping()
-
-			vim.api.nvim_create_autocmd("User", {
-				pattern = "VeryLazy",
-				callback = apply_mapping,
-			})
-		end,
-		config = function()
-			-- ensure mapping still points to iTerm launcher after plugin loads
-			vim.schedule(function()
-				vim.keymap.set("n", "<leader>gl", open_lazygit, {
-					desc = "Git: Lazygit (iTerm2 tab)",
-					silent = true,
-				})
-			end)
-		end,
 	},
 
 	-- Fugitive

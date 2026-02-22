@@ -4,7 +4,7 @@ local opts = { noremap = true, silent = true }
 
 -- Example general maps (edit to match what your monolith currently has)
 map("n", "<leader>w", "<cmd>w<CR>", vim.tbl_extend("force", opts, { desc = "Save" }))
-map("n", "<leader>qq", "<cmd>qa<CR>", vim.tbl_extend("force", opts, { desc = "Quit all" }))
+map("n", "<leader>qQ", "<cmd>qa<CR>", vim.tbl_extend("force", opts, { desc = "Quit all (no session save)" }))
 
 -- Window navigation (example)
 map("n", "<leader>wh", "<C-w>h", vim.tbl_extend("force", opts, { desc = "Window left" }))

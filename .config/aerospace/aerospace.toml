@@ -44,7 +44,7 @@ if.app-id = 'com.openai.chat'
 run = 'move-node-to-workspace 5'
 
 [[on-window-detected]]
-if.app-id = 'com.apple.finder'
+if.app-id = 'com.openai.codex'
 run = 'move-node-to-workspace 6'
 
 [[on-window-detected]]
@@ -52,7 +52,7 @@ if.app-id = 'com.apple.Notes'
 run = 'move-node-to-workspace 7'
 
 [[on-window-detected]]
-if.app-id = 'com.microsoft.Word'
+if.app-id = 'com.apple.finder'
 run = 'move-node-to-workspace 8'
 
 [[on-window-detected]]
