@@ -2,6 +2,10 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+vim.keymap.set("x", "<leader>pm", function()
+	vim.notify("probe: mode=" .. vim.fn.mode(), vim.log.levels.WARN)
+end, { desc = "probe mode in visual" })
+
 local function safe_require(mod)
 	local ok, m = pcall(require, mod)
 	if ok then

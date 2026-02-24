@@ -31,9 +31,87 @@ local function run_codex(input, prompt, callback)
 	})
 
 	if job_id > 0 then
-		vim.fn.chansend(job_id, input .. "\n")
+		if input and input ~= "" then
+			vim.fn.chansend(job_id, input .. "\n")
+		end
 		vim.fn.chanclose(job_id, "stdin")
 	else
+		vim.notify("Failed to start Codex job", vim.log.levels.ERROR, { title = "Codex" })
+	end
+end
+
+-- Run codex exec with the INPUT embedded in the prompt (no stdin).
+local function run_codex_embedded(input, instruction, callback)
+	local output = {}
+
+	local full_prompt = instruction .. "\n\n---\nHere is the code/snippet:\n```c\n" .. input .. "\n```"
+
+	-- tiny “pulse” while Codex runs
+	local done = false
+	vim.notify("Codex: thinking…", vim.log.levels.INFO, { title = "Codex" })
+	local timer = vim.loop.new_timer()
+	if timer then
+		timer:start(
+			1200,
+			1200,
+			vim.schedule_wrap(function()
+				if done then
+					timer:stop()
+					timer:close()
+					return
+				end
+				-- re-pulse without spamming too hard
+				vim.notify("Codex: still working…", vim.log.levels.INFO, { title = "Codex" })
+			end)
+		)
+	end
+
+	local job_id = vim.fn.jobstart({ "codex", "exec", "--skip-git-repo-check", full_prompt }, {
+		pty = true, -- IMPORTANT: makes Codex think it has a terminal
+		env = {
+			PAGER = "cat",
+			GIT_PAGER = "cat",
+			LESS = "-FRSX",
+			NO_COLOR = "1",
+			TERM = "xterm-256color",
+		},
+
+		stdout_buffered = true,
+		on_stdout = function(_, data)
+			if data then
+				vim.list_extend(output, data)
+			end
+		end,
+
+		-- IMPORTANT: do NOT notify on stderr; capture it (Codex writes a lot here)
+		stderr_buffered = true,
+		on_stderr = function(_, data)
+			if data then
+				vim.list_extend(output, data)
+			end
+		end,
+
+		on_exit = function(_, code)
+			done = true
+			if code == 0 and callback then
+				local cleaned = {}
+				for _, line in ipairs(output) do
+					line = line:gsub("\r", "")
+					if not line:match("^Skipping markdown%-preview build") then
+						table.insert(cleaned, line)
+					end
+				end
+				output = cleaned
+
+				callback(output)
+			else
+				vim.notify("Codex exited with code " .. tostring(code), vim.log.levels.WARN, { title = "Codex" })
+			end
+		end,
+	})
+
+	if job_id <= 0 then
+		done = true
 		vim.notify("Failed to start Codex job", vim.log.levels.ERROR, { title = "Codex" })
 	end
 end
@@ -52,22 +130,80 @@ local function collect_selection()
 end
 
 local function prompt_user(opts, cb)
-	vim.ui.input(opts, function(answer)
+	vim.ui.input({ prompt = opts.prompt, default = opts.default }, function(answer)
 		if answer and answer ~= "" then
 			cb(answer)
 		end
 	end)
 end
 
-local function open_scratch(lines, filetype)
-	vim.cmd("new")
-	vim.api.nvim_buf_set_lines(0, 0, -1, false, lines or {})
-	vim.bo.buftype = "nofile"
-	vim.bo.bufhidden = "wipe"
-	vim.bo.swapfile = false
-	if filetype then
-		vim.bo.filetype = filetype
+local function open_scratch(lines, filetype, title)
+	title = title or "Codex Output"
+
+	local bufname = "codex://" .. title
+	local bufnr = vim.fn.bufnr(bufname)
+
+	if bufnr == -1 then
+		vim.cmd("botright new")
+		bufnr = vim.api.nvim_get_current_buf()
+		vim.api.nvim_buf_set_name(bufnr, bufname)
+	else
+		vim.cmd("botright sbuffer " .. bufnr)
 	end
+
+	vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines or {})
+	vim.bo[bufnr].buftype = "nofile"
+	vim.bo[bufnr].bufhidden = "wipe"
+	vim.bo[bufnr].swapfile = false
+
+	if filetype then
+		vim.bo[bufnr].filetype = filetype
+	end
+end
+
+-- Keep only the assistant answer portion from Codex CLI output.
+-- Codex CLI prints a transcript, then a line exactly "codex", then the answer.
+local function clean_codex_output(lines)
+	local out = {}
+	local capture = false
+
+	for _, line in ipairs(lines or {}) do
+		if line == nil then
+			goto continue
+		end
+
+		-- Start capturing ONLY after the transcript marker.
+		if line == "codex" then
+			capture = true
+			goto continue
+		end
+
+		if not capture then
+			goto continue
+		end
+
+		-- Drop common tail noise
+		if line:match("^tokens used") then
+			goto continue
+		end
+		if line:match("^Press ENTER") then
+			goto continue
+		end
+		if line:match("^Skipping markdown%-preview build") then
+			goto continue
+		end
+
+		table.insert(out, line)
+
+		::continue::
+	end
+
+	-- If we never saw "codex", fall back to original lines (better than blank).
+	if #out == 0 then
+		return lines or {}
+	end
+
+	return out
 end
 
 local function output_looks_like_diff(output)
@@ -93,6 +229,21 @@ end
 -- -------------------------------------------------------------------
 -- Public API (call these from Lazy "keys" mappings)
 -- -------------------------------------------------------------------
+
+-- Explain the current Visual selection (C learning helper)
+function M.explain_selection()
+	local text = select(1, collect_selection())
+
+	local default_prompt = "Explain what this code does step-by-step as C (not C++). "
+		.. "Call out undefined behavior, lifetime issues, and common beginner mistakes. "
+		.. "Do NOT rewrite it unless I ask."
+
+	prompt_user({ prompt = "Codex explain: ", default = default_prompt }, function(user_prompt)
+		run_codex_embedded(text, user_prompt, function(output)
+			open_scratch(clean_codex_output(output), "markdown", "Explain Selection")
+		end)
+	end)
+end
 
 function M.replace_selection()
 	local text, start_line, end_line = collect_selection()
@@ -243,22 +394,14 @@ function M.patch_buffer()
 	end)
 end
 
-function M.scratchpad_prompt()
-	prompt_user({ prompt = "Codex scratch: " }, function(prompt)
-		local cmd = "codex " .. vim.fn.shellescape(prompt)
-		vim.fn.jobstart(cmd, {
-			stdout_buffered = true,
-			on_stdout = function(_, data)
-				if data then
-					open_scratch(data, nil)
-				end
-			end,
-			on_stderr = function(_, data)
-				if data and #data > 0 then
-					vim.notify(table.concat(data, "\n"), vim.log.levels.ERROR, { title = "Codex" })
-				end
-			end,
-		})
+function M.scratchpad_prompt(default_prompt)
+	prompt_user({ prompt = "Codex scratch: ", default = default_prompt or "" }, function(prompt)
+		local text = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+		local buftext = table.concat(text, "\n")
+
+		run_codex_embedded(buftext, prompt, function(output)
+			open_scratch(clean_codex_output(output), "markdown")
+		end)
 	end)
 end
 

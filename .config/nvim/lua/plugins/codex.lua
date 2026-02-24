@@ -41,6 +41,14 @@ return {
 
 			-- Visual mode actions
 			{
+				"<leader>cE",
+				function()
+					require("codex_cli").explain_selection()
+				end,
+				mode = "x",
+				desc = "Explain selection (C learning)",
+			},
+			{
 				"<leader>cr",
 				function()
 					require("codex_cli").replace_selection()
@@ -106,8 +114,20 @@ return {
 			{
 				"<leader>cs",
 				function()
-					require("codex_cli").scratchpad_prompt()
+					local mode = vim.fn.mode()
+					local is_visual = (mode == "v" or mode == "V" or mode == "\22")
+
+					if is_visual then
+						-- leave Visual mode but keep '< and '> marks so selection is still available
+						vim.cmd("normal! <Esc>")
+					end
+
+					-- defer so which-key/lazy key handler finishes, then prompt can render
+					vim.schedule(function()
+						require("codex_cli").scratchpad_prompt()
+					end)
 				end,
+				mode = { "n", "x" },
 				desc = "Scratchpad prompt",
 			},
 		},
