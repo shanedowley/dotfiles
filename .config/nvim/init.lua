@@ -35,7 +35,7 @@ vim.cmd("filetype plugin indent on")
 
 -- Ensure timeouts are sane
 vim.o.timeout = true
-vim.o.timeoutlen = 300 -- 300ms for key sequences
+vim.o.timeoutlen = 1000
 
 -- Curor settings and behaviours
 vim.o.guicursor = table.concat({
@@ -106,6 +106,7 @@ if vim.g.neovide then
 end
 
 -- UI/UX tweaks
+vim.o.cmdheight = 1
 vim.opt.number = true
 vim.opt.scrolloff = 4
 vim.opt.relativenumber = true

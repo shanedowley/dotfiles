@@ -42,14 +42,25 @@ end
 
 -- Run codex exec with the INPUT embedded in the prompt (no stdin).
 local function run_codex_embedded(input, instruction, callback)
-	local output = {}
+	local out_stdout, out_stderr = {}, {}
 
 	local full_prompt = instruction .. "\n\n---\nHere is the code/snippet:\n```c\n" .. input .. "\n```"
 
-	-- tiny “pulse” while Codex runs
+	-- non-blocking pulse using vim.notify (updates same message)
 	local done = false
-	vim.notify("Codex: thinking…", vim.log.levels.INFO, { title = "Codex" })
-	local timer = vim.loop.new_timer()
+	local notify_id = nil
+
+	local function pulse(msg)
+		notify_id = vim.notify(msg, vim.log.levels.INFO, {
+			title = "Codex",
+			replace = notify_id,
+		})
+	end
+
+	pulse("Thinking…")
+
+	local uv = vim.uv or vim.loop
+	local timer = uv.new_timer()
 	if timer then
 		timer:start(
 			1200,
@@ -60,14 +71,13 @@ local function run_codex_embedded(input, instruction, callback)
 					timer:close()
 					return
 				end
-				-- re-pulse without spamming too hard
-				vim.notify("Codex: still working…", vim.log.levels.INFO, { title = "Codex" })
+				pulse("Still working…")
 			end)
 		)
 	end
 
 	local job_id = vim.fn.jobstart({ "codex", "exec", "--skip-git-repo-check", full_prompt }, {
-		pty = true, -- IMPORTANT: makes Codex think it has a terminal
+		pty = true,
 		env = {
 			PAGER = "cat",
 			GIT_PAGER = "cat",
@@ -79,39 +89,57 @@ local function run_codex_embedded(input, instruction, callback)
 		stdout_buffered = true,
 		on_stdout = function(_, data)
 			if data then
-				vim.list_extend(output, data)
+				vim.list_extend(out_stdout, data)
 			end
 		end,
 
-		-- IMPORTANT: do NOT notify on stderr; capture it (Codex writes a lot here)
 		stderr_buffered = true,
 		on_stderr = function(_, data)
 			if data then
-				vim.list_extend(output, data)
+				vim.list_extend(out_stderr, data)
 			end
 		end,
 
 		on_exit = function(_, code)
 			done = true
-			if code == 0 and callback then
-				local cleaned = {}
-				for _, line in ipairs(output) do
-					line = line:gsub("\r", "")
-					if not line:match("^Skipping markdown%-preview build") then
-						table.insert(cleaned, line)
-					end
-				end
-				output = cleaned
+			if timer then
+				timer:stop()
+				timer:close()
+			end
 
-				callback(output)
-			else
+			if notify_id then
+				vim.notify("Done ✓", vim.log.levels.INFO, { title = "Codex", replace = notify_id })
+			end
+
+			if code ~= 0 then
 				vim.notify("Codex exited with code " .. tostring(code), vim.log.levels.WARN, { title = "Codex" })
+				return
+			end
+
+			-- Prefer stdout; fall back to stderr if stdout is empty
+			local output = (#out_stdout > 0) and out_stdout or out_stderr
+
+			-- Normalize CRLF + drop known noise early
+			local cleaned = {}
+			for _, line in ipairs(output) do
+				line = (line or ""):gsub("\r", "")
+				if not line:match("^Skipping markdown%-preview build") then
+					table.insert(cleaned, line)
+				end
+			end
+
+			if callback then
+				callback(cleaned)
 			end
 		end,
 	})
 
 	if job_id <= 0 then
 		done = true
+		if timer then
+			timer:stop()
+			timer:close()
+		end
 		vim.notify("Failed to start Codex job", vim.log.levels.ERROR, { title = "Codex" })
 	end
 end
@@ -162,7 +190,6 @@ local function open_scratch(lines, filetype, title)
 end
 
 -- Keep only the assistant answer portion from Codex CLI output.
--- Codex CLI prints a transcript, then a line exactly "codex", then the answer.
 local function clean_codex_output(lines)
 	local out = {}
 	local capture = false
@@ -172,8 +199,10 @@ local function clean_codex_output(lines)
 			goto continue
 		end
 
+		line = line:gsub("\r", "")
+
 		-- Start capturing ONLY after the transcript marker.
-		if line == "codex" then
+		if vim.trim(line) == "codex" then
 			capture = true
 			goto continue
 		end
@@ -182,7 +211,7 @@ local function clean_codex_output(lines)
 			goto continue
 		end
 
-		-- Drop common tail noise
+		-- Drop common noise
 		if line:match("^tokens used") then
 			goto continue
 		end
@@ -193,14 +222,81 @@ local function clean_codex_output(lines)
 			goto continue
 		end
 
+		-- Drop lines that are just a number (e.g. "2,665")
+		if line:match("^%s*%d[%d,]*%s*$") then
+			goto continue
+		end
+
 		table.insert(out, line)
 
 		::continue::
 	end
 
-	-- If we never saw "codex", fall back to original lines (better than blank).
 	if #out == 0 then
 		return lines or {}
+	end
+
+	-- Trim leading/trailing empty lines
+	local function is_blank(s)
+		return s == nil or s:match("^%s*$")
+	end
+	while #out > 0 and is_blank(out[1]) do
+		table.remove(out, 1)
+	end
+	while #out > 0 and is_blank(out[#out]) do
+		table.remove(out)
+	end
+
+	-- De-dupe consecutive identical lines (keeps blank lines)
+	local dedup = {}
+	local prev = nil
+	for _, l in ipairs(out) do
+		if l ~= prev then
+			table.insert(dedup, l)
+		end
+		prev = l
+	end
+	out = dedup
+
+	-- BLOCK DEDUPE: if output is exactly repeated twice, keep only the first half.
+	-- (This matches the symptom you pasted.)
+	local function strip_trailing_blanks(t)
+		local r = vim.deepcopy(t)
+		while #r > 0 and is_blank(r[#r]) do
+			table.remove(r)
+		end
+		return r
+	end
+
+	local function slice(t, a, b)
+		local r = {}
+		for i = a, b do
+			r[#r + 1] = t[i]
+		end
+		return r
+	end
+
+	local function equal(a, b)
+		if #a ~= #b then
+			return false
+		end
+		for i = 1, #a do
+			if a[i] ~= b[i] then
+				return false
+			end
+		end
+		return true
+	end
+
+	local cleaned = strip_trailing_blanks(out)
+	local n = #cleaned
+	if n >= 6 and (n % 2 == 0) then
+		local half = n / 2
+		local a = slice(cleaned, 1, half)
+		local b = slice(cleaned, half + 1, n)
+		if equal(a, b) then
+			return a
+		end
 	end
 
 	return out
@@ -217,25 +313,52 @@ end
 
 local function extract_added_lines_from_unified_diff(output)
 	local new_lines = {}
+
 	for _, line in ipairs(output or {}) do
-		local added = line:match("^%+(.*)")
+		-- Skip diff metadata
+		if line:match("^%+%+%+") then
+			goto continue
+		end
+		if line:match("^%-%-%-") then
+			goto continue
+		end
+		if line:match("^@@") then
+			goto continue
+		end
+
+		-- Match real added lines (single leading +)
+		local added = line:match("^%+([^+].*)")
 		if added then
 			table.insert(new_lines, added)
 		end
+
+		::continue::
 	end
+
 	return new_lines
 end
 
 -- -------------------------------------------------------------------
--- Public API (call these from Lazy "keys" mappings)
+-- Public API
 -- -------------------------------------------------------------------
 
--- Explain the current Visual selection (C learning helper)
+function M.explain_text(text)
+	local default_prompt = "Explain what this code does step-by-step as C or C++. "
+		.. "Call out undefined behavior, lifetime issues, and common mistakes. "
+		.. "Do NOT rewrite it unless I ask."
+
+	prompt_user({ prompt = "Codex explain: ", default = default_prompt }, function(user_prompt)
+		run_codex_embedded(text, user_prompt, function(output)
+			open_scratch(clean_codex_output(output), "markdown", "Explain Selection")
+		end)
+	end)
+end
+
 function M.explain_selection()
 	local text = select(1, collect_selection())
 
-	local default_prompt = "Explain what this code does step-by-step as C (not C++). "
-		.. "Call out undefined behavior, lifetime issues, and common beginner mistakes. "
+	local default_prompt = "Explain what this code does step-by-step as C or C++. "
+		.. "Call out undefined behavior, lifetime issues, and common mistakes. "
 		.. "Do NOT rewrite it unless I ask."
 
 	prompt_user({ prompt = "Codex explain: ", default = default_prompt }, function(user_prompt)
@@ -268,7 +391,6 @@ function M.save_output_to_file()
 	prompt_user({ prompt = "Codex instruction: " }, function(user_prompt)
 		prompt_user({ prompt = "Save output as: " }, function(filename)
 			run_codex(text, user_prompt, function(output)
-				-- Use fnameescape to avoid issues with spaces/special chars
 				vim.cmd("edit " .. vim.fn.fnameescape(filename))
 				vim.api.nvim_buf_set_lines(0, 0, -1, false, output)
 				vim.cmd("write")
@@ -316,7 +438,6 @@ function M.preview_diff()
 				end
 			end,
 			on_exit = function()
-				-- Try to clean/normalize a diff from output
 				local cleaned = {}
 				local inside_fence = false
 				for _, line in ipairs(diff_output) do
@@ -334,7 +455,6 @@ function M.preview_diff()
 
 				open_scratch(cleaned, "diff")
 
-				-- Apply patch mapping inside the diff scratch
 				vim.keymap.set("n", "<leader>ca", function()
 					local path = "/tmp/codex_patch.diff"
 					vim.cmd("write! " .. path)

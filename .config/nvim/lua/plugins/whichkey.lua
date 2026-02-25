@@ -73,8 +73,6 @@ return {
 
 			triggers = {
 				{ "<leader>", mode = "n" },
-				{ "<leader>", mode = "v" },
-				{ "<leader>", mode = "x" },
 			},
 
 			spec = {
