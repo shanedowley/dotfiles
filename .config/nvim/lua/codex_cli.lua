@@ -57,21 +57,29 @@ local function run_codex_embedded(input, instruction, callback)
 		})
 	end
 
-	pulse("Thinking…")
+	pulse("Codex thinking…")
 
 	local uv = vim.uv or vim.loop
 	local timer = uv.new_timer()
+
+	local function stop_timer()
+		if timer then
+			pcall(timer.stop, timer)
+			pcall(timer.close, timer)
+			timer = nil
+		end
+	end
+
 	if timer then
 		timer:start(
 			1200,
 			1200,
 			vim.schedule_wrap(function()
 				if done then
-					timer:stop()
-					timer:close()
+					stop_timer()
 					return
 				end
-				pulse("Still working…")
+				pulse("Codex still working…")
 			end)
 		)
 	end
@@ -102,10 +110,7 @@ local function run_codex_embedded(input, instruction, callback)
 
 		on_exit = function(_, code)
 			done = true
-			if timer then
-				timer:stop()
-				timer:close()
-			end
+			stop_timer()
 
 			if notify_id then
 				vim.notify("Done ✓", vim.log.levels.INFO, { title = "Codex", replace = notify_id })
@@ -136,10 +141,8 @@ local function run_codex_embedded(input, instruction, callback)
 
 	if job_id <= 0 then
 		done = true
-		if timer then
-			timer:stop()
-			timer:close()
-		end
+		stop_timer()
+
 		vim.notify("Failed to start Codex job", vim.log.levels.ERROR, { title = "Codex" })
 	end
 end
@@ -343,9 +346,20 @@ end
 -- -------------------------------------------------------------------
 
 function M.explain_text(text)
-	local default_prompt = "Explain what this code does step-by-step as C or C++. "
-		.. "Call out undefined behavior, lifetime issues, and common mistakes. "
-		.. "Do NOT rewrite it unless I ask."
+	local default_prompt = table.concat({
+		"Explain the following snippet step-by-step (C and C++ where relevant).",
+		"",
+		"Rules:",
+		"- First, echo the snippet exactly as you received it in a fenced block labeled: ```received ... ```.",
+		"- If the snippet appears incomplete/truncated, say so explicitly before analysis.",
+		"- Be strictly accurate about the C/C++ standard rules. If unsure, say so.",
+		"- Clearly separate: (A) well-defined behavior, (B) unspecified/indeterminate order, (C) implementation-defined behavior, (D) undefined behavior (UB).",
+		"- When discussing arithmetic, be precise about: integer promotions, usual arithmetic conversions, and signed/unsigned mixing.",
+		"- Do NOT claim that 'float promotes to double' in ordinary expressions in C. (That’s only guaranteed for default argument promotions, e.g., varargs.)",
+		"- For pointer arithmetic, state the valid range (same array object or one-past) and what is UB.",
+		"- Keep it concise: maximum 12 bullets. No filler, focused on what applies to THIS snippet.",
+		"- Do NOT rewrite the code unless I ask.",
+	}, "\n")
 
 	prompt_user({ prompt = "Codex explain: ", default = default_prompt }, function(user_prompt)
 		run_codex_embedded(text, user_prompt, function(output)
@@ -357,9 +371,20 @@ end
 function M.explain_selection()
 	local text = select(1, collect_selection())
 
-	local default_prompt = "Explain what this code does step-by-step as C or C++. "
-		.. "Call out undefined behavior, lifetime issues, and common mistakes. "
-		.. "Do NOT rewrite it unless I ask."
+	local default_prompt = table.concat({
+		"Explain the following snippet step-by-step (C and C++ where relevant).",
+		"",
+		"Rules:",
+		"- First, echo the snippet exactly as you received it in a fenced block labeled: ```received ... ```.",
+		"- If the snippet appears incomplete/truncated, say so explicitly before analysis.",
+		"- Be strictly accurate about the C/C++ standard rules. If unsure, say so.",
+		"- Clearly separate: (A) well-defined behavior, (B) unspecified/indeterminate order, (C) implementation-defined behavior, (D) undefined behavior (UB).",
+		"- When discussing arithmetic, be precise about: integer promotions, usual arithmetic conversions, and signed/unsigned mixing.",
+		"- Do NOT claim that 'float promotes to double' in ordinary expressions in C. (That’s only guaranteed for default argument promotions, e.g., varargs.)",
+		"- For pointer arithmetic, state the valid range (same array object or one-past) and what is UB.",
+		"- Keep it concise: maximum 12 bullets. No filler, focused on what applies to THIS snippet.",
+		"- Do NOT rewrite the code unless I ask.",
+	}, "\n")
 
 	prompt_user({ prompt = "Codex explain: ", default = default_prompt }, function(user_prompt)
 		run_codex_embedded(text, user_prompt, function(output)
