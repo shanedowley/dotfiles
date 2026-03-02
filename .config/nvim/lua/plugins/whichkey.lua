@@ -5,6 +5,7 @@ return {
 		event = "VeryLazy",
 
 		init = function()
+			-- Remove a few competing mappings
 			pcall(vim.keymap.del, "n", "<leader>B")
 			for _, lhs in ipairs({ "<leader>+", "<leader>-", "<leader><", "<leader>>" }) do
 				pcall(vim.keymap.del, "n", lhs)
@@ -67,16 +68,18 @@ return {
 
 			win = { border = "rounded", padding = { 1, 2, 1, 2 } },
 			layout = { align = "left" },
+			delay = 0,
 			show_help = false,
 			show_keys = true,
 			icons = { mappings = false },
 
+			-- IMPORTANT: let which-key trigger itself (no manual :WhichKey mappings!)
 			triggers = {
 				{ "<leader>", mode = "n" },
+				{ "<leader>", mode = "x" },
 			},
 
 			spec = {
-
 				----------------------------------------------------------------------
 				-- ASM
 				----------------------------------------------------------------------
@@ -155,6 +158,11 @@ return {
 				----------------------------------------------------------------------
 				{ "<leader>u", group = "+ui" },
 				{ "<leader>ut", desc = "Switch color scheme" },
+
+				----------------------------------------------------------------------
+				-- CODEX (group label for both Normal + Visual)
+				----------------------------------------------------------------------
+				{ "<leader>c", group = "+codex", mode = { "n", "x" } },
 
 				----------------------------------------------------------------------
 				-- LSP
@@ -485,6 +493,7 @@ return {
 						return vim.bo.filetype == "tex"
 					end,
 				},
+
 				----------------------------------------------------------------------
 				-- RUN
 				----------------------------------------------------------------------
