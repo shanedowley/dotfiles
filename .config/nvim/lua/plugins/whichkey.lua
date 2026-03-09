@@ -160,9 +160,38 @@ return {
 				{ "<leader>ut", desc = "Switch color scheme" },
 
 				----------------------------------------------------------------------
-				-- CODEX (group label for both Normal + Visual)
+				-- CODEX
 				----------------------------------------------------------------------
 				{ "<leader>c", group = "+codex", mode = { "n", "x" } },
+
+				-- Codex terminal / context
+				{ "<leader>ct", desc = "Terminal: Toggle/Open", mode = "n" },
+				{ "<leader>cT", desc = "Terminal: Focus", mode = "n" },
+				{ "<leader>cA", desc = "Terminal: Add file to context", mode = "n" },
+
+				-- Normal mode Codex actions
+				{ "<leader>cR", desc = "Refactor current function", mode = "n" },
+				{ "<leader>cl", desc = "Run on current line", mode = "n" },
+				{ "<leader>cF", desc = "Run on entire file", mode = "n" },
+				{ "<leader>cp", desc = "Patch buffer (diff)", mode = "n" },
+				{ "<leader>cs", desc = "Scratchpad prompt", mode = "n" },
+
+				-- If these are also mapped in your broader config, keep them visible here
+				{ "<leader>cE", desc = "Explain current line", mode = "n" },
+				{ "<leader>ca", desc = "Apply inline (current line)", mode = "n" },
+				{ "<leader>cD", desc = "Preview diff (current line)", mode = "n" },
+
+				-- Visual mode Codex actions
+				{ "<leader>cE", desc = "Explain selection", mode = "x" },
+				{ "<leader>cr", desc = "Replace selection", mode = "x" },
+				{ "<leader>co", desc = "Open output in scratch buffer", mode = "x" },
+				{ "<leader>ca", desc = "Apply inline (selection)", mode = "x" },
+				{ "<leader>cd", desc = "Preview diff (selection)", mode = "x" },
+				{ "<leader>cw", desc = "Write output to file", mode = "x" },
+				{ "<leader>cs", desc = "Scratchpad prompt", mode = "x" },
+
+				-- If you are still exposing the alias from your keymaps/init.lua
+				{ "<leader>cD", desc = "Preview diff (selection)", mode = "x" },
 
 				----------------------------------------------------------------------
 				-- LSP

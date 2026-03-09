@@ -83,13 +83,59 @@ return {
 			{
 				"<leader>cw",
 				function()
-					require("codex_cli").save_output_to_file()
+					local function get_visual_selection_text()
+						local buf = 0
+						local vmode = vim.fn.visualmode()
+						local vpos = vim.fn.getpos("v")
+						local cpos = vim.fn.getpos(".")
+
+						local srow, scol = vpos[2], vpos[3]
+						local erow, ecol = cpos[2], cpos[3]
+
+						if (srow > erow) or (srow == erow and scol > ecol) then
+							srow, erow = erow, srow
+							scol, ecol = ecol, scol
+						end
+
+						if vmode == "V" then
+							local lines = vim.api.nvim_buf_get_lines(buf, srow - 1, erow, false)
+							return table.concat(lines, "\n")
+						end
+
+						local lines = vim.api.nvim_buf_get_text(buf, srow - 1, scol - 1, erow - 1, ecol, {})
+						return table.concat(lines, "\n")
+					end
+
+					local text = get_visual_selection_text()
+
+					vim.schedule(function()
+						local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
+						vim.api.nvim_feedkeys(esc, "nx", false)
+
+						vim.schedule(function()
+							require("codex_cli").save_output_to_file_text(text)
+						end)
+					end)
 				end,
-				mode = "v",
+				mode = "x",
 				desc = "Write output to file",
 			},
 
 			-- Normal mode actions
+			{
+				"<leader>cR",
+				function()
+					require("codex_cli").replace_current_function()
+				end,
+				desc = "Refactor current function",
+			},
+			{
+				"<leader>cP",
+				function()
+					require("codex_cli").safe_preview_confirm_apply_current_function()
+				end,
+				desc = "Safe refactor preview (current function)",
+			},
 			{
 				"<leader>cl",
 				function()

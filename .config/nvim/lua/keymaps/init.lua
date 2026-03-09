@@ -151,9 +151,23 @@ vim.api.nvim_create_autocmd("User", {
 
 		-- Visual: Replace selection (raw path)
 		vim.keymap.set({ "x", "v" }, "<leader>cr", function()
+			-- capture selection BEFORE exiting visual
+			local text = get_visual_selection_text()
+
+			-- capture the line range using live marks (v and .)
+			local vpos = vim.fn.getpos("v")
+			local cpos = vim.fn.getpos(".")
+			local srow, erow = vpos[2], cpos[2]
+			if srow > erow then
+				srow, erow = erow, srow
+			end
+
+			local ft = vim.bo.filetype or "text"
+
 			exit_visual_then(function()
-				codex.replace_selection()
+				codex.replace_range(text, srow, erow, ft)
 			end)
+
 			return "<Ignore>"
 		end, vopts("Codex: Replace selection (Visual)"))
 
