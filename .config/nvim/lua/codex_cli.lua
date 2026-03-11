@@ -5,6 +5,8 @@ local parse = require("codex_parse")
 local prompt = require("codex_prompt")
 local mode = require("codex_mode")
 local codex_log = require("codex_log")
+local recovery = require("codex_recovery")
+local guard = require("codex_guard")
 
 -- -------------------------------------------------------------------
 -- Codex UI helpers (spinner)
@@ -319,139 +321,6 @@ local function collapse_if_doubled(body, want_lines)
 	return body
 end
 
--- Refactor-mode guard: candidate rewrite must remain exactly ONE function definition
--- and must match the original function name.
-
-local function extract_first_function_name(text)
-	for _, l in ipairs(vim.split(text or "", "\n", { plain = true })) do
-		local line = vim.trim(l or "")
-		if line ~= "" then
-			-- Skip obvious non-signature starters
-			if line:match("^%s*//") or line:match("^%s*/%*") or line:match("^%s*#") then
-				goto continue
-			end
-
-			-- Match common C/C++ function definition starters.
-			-- Examples:
-			--   static int foo(int x)
-			--   int foo(int x)
-			--   inline int ns::foo(int x)
-			--   constexpr auto foo(int x) -> int
-			--
-			-- This is intentionally heuristic (fast + robust enough for guarding).
-			local _, name = line:match("^%s*(.-)%s+([%w_:~]+)%s*%b()%s*$")
-			if name then
-				return name
-			end
-
-			-- Also allow the `{` to be on the same line:
-			local _, name2 = line:match("^%s*(.-)%s+([%w_:~]+)%s*%b()%s*%{")
-			if name2 then
-				return name2
-			end
-		end
-
-		::continue::
-	end
-	return nil
-end
-
-local function count_function_defs_and_names(lines)
-	local defs = {}
-
-	for i, l in ipairs(lines or {}) do
-		local line = (l or "")
-
-		-- Detect a likely function-definition header line.
-		-- We require (...) and either end-of-line OR an opening brace.
-		-- This catches:
-		--   int foo(int x)
-		--   static int foo(int x) {
-		-- and avoids most control statements like: if (x) { ... }
-		--
-		-- Guard against common keywords that could false-positive.
-		if
-			line:match("^%s*if%s*%(")
-			or line:match("^%s*else%s+if%s*%(")
-			or line:match("^%s*else%s*$")
-			or line:match("^%s*for%s*%(")
-			or line:match("^%s*while%s*%(")
-			or line:match("^%s*switch%s*%(")
-			or line:match("^%s*return%s")
-		then
-			goto continue
-		end
-
-		local _, name = line:match("^%s*(.-)%s+([%w_:~]+)%s*%b()%s*%{")
-		if name then
-			table.insert(defs, { line = vim.trim(line), name = name, idx = i })
-			goto continue
-		end
-
-		-- Signature with brace on next line: count the signature line as a def start.
-		local _, name2 = line:match("^%s*(.-)%s+([%w_:~]+)%s*%b()%s*$")
-		if name2 then
-			-- Only count it if the NEXT nonblank line is "{"
-			for j = i + 1, math.min(i + 6, #lines) do
-				local nxt = lines[j] or ""
-				if vim.trim(nxt) == "" then
-					-- skip blanks
-				elseif nxt:match("^%s*%{") then
-					table.insert(defs, { line = vim.trim(line), name = name2, idx = i })
-					break
-				else
-					break
-				end
-			end
-		end
-
-		::continue::
-	end
-
-	return defs
-end
-
-local function violates_refactor_single_function(original_selection_text, candidate_lines)
-	local orig_name = extract_first_function_name(original_selection_text)
-	if not orig_name then
-		return false, nil
-	end
-
-	local defs = count_function_defs_and_names(candidate_lines)
-
-	if #defs == 0 then
-		return true,
-			{
-				"Refactor guard: rejected candidate output.",
-				"Reason: no function definition detected in candidate output.",
-			}
-	end
-
-	if #defs > 1 then
-		local out = {
-			"Refactor guard: rejected candidate output.",
-			"Reason: candidate contains multiple function definitions (injection / helper creation).",
-			"Detected function defs:",
-		}
-		for _, d in ipairs(defs) do
-			table.insert(out, string.format("%d | %s", d.idx, d.line))
-		end
-		return true, out
-	end
-
-	-- Exactly one function definition: ensure it is the SAME function.
-	if defs[1].name ~= orig_name then
-		return true,
-			{
-				"Refactor guard: rejected candidate output.",
-				("Reason: function name changed or new helper introduced (%s -> %s)."):format(orig_name, defs[1].name),
-				("Candidate def: %d | %s"):format(defs[1].idx, defs[1].line),
-			}
-	end
-
-	return false, nil
-end
-
 -- -------------------------------------------------------------------
 -- Clang validation (arg-safe, telemetry)
 -- -------------------------------------------------------------------
@@ -467,7 +336,7 @@ local function system_run(argv)
 		code = res.code or 1,
 		stdout = res.stdout or "",
 		stderr = res.stderr or "",
-		signal = res.signal, -- may be nil depending on platform
+		signal = res.signal,
 	}
 end
 
@@ -491,7 +360,6 @@ local function with_line_numbers(lines, start_at)
 end
 
 local function trim_blank_edges(lines)
-	-- If you already have parse.trim_blank_edges you can call that instead.
 	local first = 1
 	local last = #lines
 	while first <= last and vim.trim(lines[first] or "") == "" do
@@ -506,28 +374,7 @@ local function trim_blank_edges(lines)
 	return vim.list_slice(lines, first, last)
 end
 
-local function too_large_rewrite(body, want_lines)
-	-- Guard against Codex dumping huge output when asked to rewrite a small selection.
-	-- Allow modest growth (refactors often add/adjust braces, comments, etc.)
-	local n = #body
-	if n == 0 then
-		return true, "empty output"
-	end
-	local max_abs = 300
-	if n > max_abs then
-		return true, string.format("output too large (%d lines)", n)
-	end
-	if want_lines and want_lines > 0 then
-		local max_mul = 4
-		if n > (want_lines * max_mul) then
-			return true, string.format("output grew too much (%d → %d lines)", want_lines, n)
-		end
-	end
-	return false, nil
-end
-
 local function hrtime_ms()
-	-- uv.hrtime() is nanoseconds
 	return math.floor((uv.hrtime() or 0) / 1e6)
 end
 
@@ -540,7 +387,6 @@ local function is_cc_ft(ft)
 end
 
 local function clang_exe_for_ft(ft)
-	-- Prefer clang++ for C++-ish, clang for C
 	ft = ft or ""
 	if ft == "c" then
 		return "clang"
@@ -556,13 +402,6 @@ local function clang_args_for_ft(ft)
 	return { "-fsyntax-only", "-std=c++20" }
 end
 
--- Build a temp file representing the CURRENT BUFFER with a candidate range replacement applied,
--- then run clang/clang++ -fsyntax-only on it.
---
--- Returns:
---   ok:boolean, diag_lines:table<string>, temp_path:string, meta:table
--- meta:
---   { argv = {..}, code = int, signal = int|nil, elapsed_ms = int, skipped = boolean|nil, reason = string|nil }
 local function clang_preflight_range_replace(bufnr, ft, start_line, end_line, replacement_lines)
 	bufnr = bufnr or 0
 	ft = ft or (vim.bo[bufnr].filetype or "")
@@ -574,7 +413,6 @@ local function clang_preflight_range_replace(bufnr, ft, start_line, end_line, re
 		elapsed_ms = nil,
 	}
 
-	-- If we can't run clang, don't block writes.
 	local exe = clang_exe_for_ft(ft)
 	if vim.fn.executable(exe) ~= 1 then
 		meta.skipped = true
@@ -582,18 +420,15 @@ local function clang_preflight_range_replace(bufnr, ft, start_line, end_line, re
 		return true, { "clang preflight skipped: " .. exe .. " not found in PATH" }, "", meta
 	end
 
-	-- If vim.system isn't available, skip (arg-safe runner not available).
 	if not vim.system then
 		meta.skipped = true
 		meta.reason = "vim.system not available"
 		return true, { "clang preflight skipped: vim.system not available" }, "", meta
 	end
 
-	-- Read buffer lines and apply replacement in-memory.
-	local orig = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false) -- 0-based, end exclusive
+	local orig = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 	local new_lines = {}
 
-	-- start_line/end_line are 1-based, end_line inclusive
 	local start0 = math.max(0, (start_line or 1) - 1)
 	local end0_incl = math.max(start0, (end_line or start_line or 1) - 1)
 
@@ -607,7 +442,6 @@ local function clang_preflight_range_replace(bufnr, ft, start_line, end_line, re
 		new_lines[#new_lines + 1] = orig[i]
 	end
 
-	-- Write temp file.
 	local tmpdir = vim.fn.tempname()
 	pcall(vim.fn.mkdir, tmpdir, "p")
 
@@ -615,7 +449,6 @@ local function clang_preflight_range_replace(bufnr, ft, start_line, end_line, re
 	local tmppath = tmpdir .. "/0" .. ext
 	vim.fn.writefile(new_lines, tmppath)
 
-	-- Run clang (arg-safe).
 	local args = clang_args_for_ft(ft)
 	local argv = vim.list_extend({ exe }, args)
 	table.insert(argv, tmppath)
@@ -634,7 +467,6 @@ local function clang_preflight_range_replace(bufnr, ft, start_line, end_line, re
 		return true, {}, tmppath, meta
 	end
 
-	-- clang writes diagnostics mostly to stderr; fall back to stdout if empty
 	local diag = split_nonempty_lines(res.stderr)
 	if #diag == 0 then
 		diag = split_nonempty_lines(res.stdout)
@@ -644,8 +476,6 @@ local function clang_preflight_range_replace(bufnr, ft, start_line, end_line, re
 end
 
 local function open_clang_rejection_scratch(opts)
-	-- opts:
-	--  title, ft, user_instruction, start_line, end_line, candidate_lines, clang_lines, temp_path, meta
 	local title = opts.title or "Codex Rejected (clang)"
 	local ft = opts.ft or ""
 	local m = mode.current()
@@ -734,10 +564,6 @@ local function build_local_unified_diff(original_lines, candidate_lines, ft)
 
 	local res = system_run({ exe, "-u", old_path, new_path })
 
-	-- diff exit codes:
-	--   0 = no differences
-	--   1 = differences found
-	--   >1 = actual error
 	if res.code ~= 0 and res.code ~= 1 then
 		local err = split_nonempty_lines(res.stderr)
 		if #err == 0 then
@@ -799,7 +625,6 @@ end
 -- Job runners
 -- -------------------------------------------------------------------
 
--- Run codex exec with the INPUT embedded in the prompt (no stdin).
 local function run_codex_embedded(input, instruction, callback, ft)
 	local out_stdout, out_stderr = {}, {}
 
@@ -812,10 +637,12 @@ local function run_codex_embedded(input, instruction, callback, ft)
 	codex_log.write("start", {
 		mode = current_mode,
 		file = vim.api.nvim_buf_get_name(0),
+		prompt_version = prompt.version(),
 	})
 
-	local job_id = vim.fn.jobstart({ "codex", "exec", "--skip-git-repo-check", full_prompt }, {
+	local t0 = hrtime_ms()
 
+	local job_id = vim.fn.jobstart({ "codex", "exec", "--skip-git-repo-check", full_prompt }, {
 		pty = true,
 		env = {
 			PAGER = "cat",
@@ -841,7 +668,25 @@ local function run_codex_embedded(input, instruction, callback, ft)
 
 		on_exit = function(_, code)
 			vim.schedule(function()
+				local elapsed_ms = hrtime_ms() - t0
+
 				if code ~= 0 then
+					codex_log.write("error", {
+						mode = current_mode,
+						file = vim.api.nvim_buf_get_name(0),
+						reason = "codex_job_failed",
+						result = tostring(code),
+					})
+
+					codex_log.write("latency", {
+						mode = current_mode,
+						file = vim.api.nvim_buf_get_name(0),
+						stage = "codex_exec",
+						elapsed_ms = elapsed_ms,
+						prompt_version = prompt.version(),
+						result = "FAIL",
+					})
+
 					ui_stop("Codex [" .. mode.current() .. "] failed (see output)", vim.log.levels.ERROR)
 					if #out_stderr > 0 then
 						open_scratch(out_stderr, "text", "Codex STDERR")
@@ -866,6 +711,15 @@ local function run_codex_embedded(input, instruction, callback, ft)
 					bytes = #table.concat(cleaned, "\n"),
 				})
 
+				codex_log.write("latency", {
+					mode = current_mode,
+					file = vim.api.nvim_buf_get_name(0),
+					stage = "codex_exec",
+					elapsed_ms = elapsed_ms,
+					prompt_version = prompt.version(),
+					result = "PASS",
+				})
+
 				if callback then
 					callback(cleaned)
 				end
@@ -874,6 +728,12 @@ local function run_codex_embedded(input, instruction, callback, ft)
 	})
 
 	if job_id <= 0 then
+		codex_log.write("error", {
+			mode = current_mode,
+			file = vim.api.nvim_buf_get_name(0),
+			reason = "jobstart_failed",
+			result = tostring(job_id),
+		})
 		ui_stop("Failed to start Codex job", vim.log.levels.ERROR)
 	end
 end
@@ -894,7 +754,6 @@ function M.replace_current_function()
 	local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
 	local text = table.concat(lines, "\n")
 
-	-- Route through your existing range rewrite path (with clang + guards)
 	M.replace_range(text, start_line, end_line, ft)
 end
 
@@ -953,28 +812,51 @@ function M.apply_inline_current_line()
 					local body = parse.parse_apply_body(raw)
 
 					if #body == 0 then
-						vim.notify("Apply: no marked replacement block found", vim.log.levels.WARN, { title = "Codex" })
-						open_scratch(raw, "text", "Codex Apply (unparsed)")
+						codex_log.write("error", {
+							mode = mode.current(),
+							file = vim.api.nvim_buf_get_name(0),
+							reason = "apply_block_missing",
+						})
+
+						recovery.show_failure({
+							reason = "Apply: no marked replacement block found",
+							title = "Codex Apply (unparsed)",
+							lines = raw,
+						})
 						return
 					end
 
 					if #body == 1 and vim.trim(body[1]) == "ERROR" then
-						vim.notify("Apply: Codex returned ERROR", vim.log.levels.ERROR, { title = "Codex" })
-						open_scratch(raw, "text", "Codex Apply (ERROR)")
+						codex_log.write("error", {
+							mode = mode.current(),
+							file = vim.api.nvim_buf_get_name(0),
+							reason = "codex_returned_error",
+						})
+
+						recovery.show_failure({
+							reason = "Apply: Codex returned ERROR",
+							title = "Codex Apply (ERROR)",
+							lines = raw,
+						})
 						return
 					end
 
 					if #body ~= want_lines then
-						vim.notify(
-							string.format("Apply: wrong line count (got %d, want %d)", #body, want_lines),
-							vim.log.levels.ERROR,
-							{ title = "Codex" }
-						)
-						open_scratch(raw, "text", "Codex Apply (wrong line count)")
+						codex_log.write("error", {
+							mode = mode.current(),
+							file = vim.api.nvim_buf_get_name(0),
+							reason = "wrong_line_count",
+							result = string.format("got_%d_want_%d", #body, want_lines),
+						})
+
+						recovery.show_failure({
+							reason = string.format("Apply: wrong line count (got %d, want %d)", #body, want_lines),
+							title = "Codex Apply (wrong line count)",
+							lines = raw,
+						})
 						return
 					end
 
-					-- clang preflight for C/C++
 					if is_cc_ft(ft) then
 						local ok, clang_lines, tmppath, meta = clang_preflight_range_replace(0, ft, lnum, lnum, body)
 						if not ok then
@@ -1022,6 +904,11 @@ function M.replace_range(text, start_line, end_line, ft)
 			body = collapse_if_doubled(body, want_lines)
 
 			if parse.looks_like_chatty_output(body) then
+				codex_log.write("error", {
+					mode = mode.current(),
+					file = vim.api.nvim_buf_get_name(0),
+					reason = "rule_break_output",
+				})
 				open_scratch(body, "text", "Codex Output (rule break)")
 				vim.notify("Codex violated output rules; not applying", vim.log.levels.WARN, { title = "Codex" })
 				return
@@ -1029,27 +916,69 @@ function M.replace_range(text, start_line, end_line, ft)
 
 			body = trim_blank_edges(body)
 
-			local bad, why = too_large_rewrite(body, want_lines)
+			local bad, why = guard.too_large_rewrite(body, want_lines)
 			if bad then
+				codex_log.write("error", {
+					mode = mode.current(),
+					file = vim.api.nvim_buf_get_name(0),
+					reason = why or "invalid_rewrite",
+				})
 				open_scratch(body, "text", "Codex Output (rejected)")
 				vim.notify("Codex output rejected: " .. (why or "invalid"), vim.log.levels.WARN, { title = "Codex" })
 				return
 			end
 
-			-- Refactor-mode structural guard (prevents extra helper/function injections)
+			local bad_pp, why_pp = guard.rejects_preprocessor_injection(body)
+			if bad_pp then
+				codex_log.write("error", {
+					mode = mode.current(),
+					file = vim.api.nvim_buf_get_name(0),
+					reason = "preprocessor_injection_rejected",
+				})
+				open_scratch(why_pp, "text", "Codex Output (guard rejected)")
+				vim.notify("Codex output rejected by guard", vim.log.levels.WARN, { title = "Codex" })
+				return
+			end
+
 			if mode.current() == "refactor" then
-				local bad2, why_lines = violates_refactor_single_function(text, body)
+				local bad2, why_lines = guard.violates_refactor_single_function(text, body)
 				if bad2 then
+					codex_log.write("error", {
+						mode = mode.current(),
+						file = vim.api.nvim_buf_get_name(0),
+						reason = "refactor_guard_rejected",
+					})
 					open_scratch(why_lines, "text", "Codex Output (rejected)")
 					vim.notify("Codex output rejected by refactor guard", vim.log.levels.WARN, { title = "Codex" })
 					return
 				end
 			end
 
-			-- clang preflight for C/C++
 			if is_cc_ft(ft) then
 				local ok, clang_lines, tmppath, meta = clang_preflight_range_replace(0, ft, start_line, end_line, body)
+
+				codex_log.write("validate", {
+					mode = mode.current(),
+					file = vim.api.nvim_buf_get_name(0),
+					result = ok and "PASS" or "FAIL",
+					check = "clang",
+				})
+
+				codex_log.write("latency", {
+					mode = mode.current(),
+					file = vim.api.nvim_buf_get_name(0),
+					stage = "clang_preflight",
+					elapsed_ms = meta.elapsed_ms or -1,
+					result = ok and "PASS" or "FAIL",
+				})
+
 				if not ok then
+					codex_log.write("error", {
+						mode = mode.current(),
+						file = vim.api.nvim_buf_get_name(0),
+						reason = "clang_rejected",
+					})
+
 					open_clang_rejection_scratch({
 						title = "Codex Rejected (clang)",
 						ft = ft,
@@ -1065,6 +994,13 @@ function M.replace_range(text, start_line, end_line, ft)
 					return
 				end
 			end
+
+			codex_log.write("apply", {
+				mode = mode.current(),
+				file = vim.api.nvim_buf_get_name(0),
+				result = "SUCCESS",
+				range = string.format("%d-%d", start_line, end_line),
+			})
 
 			vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, body)
 		end, ft)
@@ -1182,16 +1118,15 @@ function M.replace_selection()
 
 			body = trim_blank_edges(body)
 
-			local bad, why = too_large_rewrite(body, want_lines)
+			local bad, why = guard.too_large_rewrite(body, want_lines)
 			if bad then
 				open_scratch(body, "text", "Codex Output (rejected)")
 				vim.notify("Codex output rejected: " .. (why or "invalid"), vim.log.levels.WARN, { title = "Codex" })
 				return
 			end
 
-			-- Refactor-mode structural guard (prevents extra helper/function injections)
 			if mode.current() == "refactor" then
-				local bad2, why_lines = violates_refactor_single_function(text, body)
+				local bad2, why_lines = guard.violates_refactor_single_function(text, body)
 				if bad2 then
 					open_scratch(why_lines, "text", "Codex Output (rejected)")
 					vim.notify("Codex output rejected by refactor guard", vim.log.levels.WARN, { title = "Codex" })
@@ -1199,7 +1134,6 @@ function M.replace_selection()
 				end
 			end
 
-			-- clang preflight for C/C++
 			if is_cc_ft(ft) then
 				local ok, clang_lines, tmppath, meta = clang_preflight_range_replace(0, ft, start_line, end_line, body)
 				if not ok then
@@ -1318,28 +1252,51 @@ function M.apply_inline()
 					local body = parse.parse_apply_body(raw)
 
 					if #body == 0 then
-						vim.notify("Apply: no marked replacement block found", vim.log.levels.WARN, { title = "Codex" })
-						open_scratch(raw, "text", "Codex Apply (unparsed)")
+						codex_log.write("error", {
+							mode = mode.current(),
+							file = vim.api.nvim_buf_get_name(0),
+							reason = "apply_block_missing",
+						})
+
+						recovery.show_failure({
+							reason = "Apply: no marked replacement block found",
+							title = "Codex Apply (unparsed)",
+							lines = raw,
+						})
 						return
 					end
 
 					if #body == 1 and vim.trim(body[1]) == "ERROR" then
-						vim.notify("Apply: Codex returned ERROR", vim.log.levels.ERROR, { title = "Codex" })
-						open_scratch(raw, "text", "Codex Apply (ERROR)")
+						codex_log.write("error", {
+							mode = mode.current(),
+							file = vim.api.nvim_buf_get_name(0),
+							reason = "codex_returned_error",
+						})
+
+						recovery.show_failure({
+							reason = "Apply: Codex returned ERROR",
+							title = "Codex Apply (ERROR)",
+							lines = raw,
+						})
 						return
 					end
 
 					if #body ~= want_lines then
-						vim.notify(
-							string.format("Apply: wrong line count (got %d, want %d)", #body, want_lines),
-							vim.log.levels.ERROR,
-							{ title = "Codex" }
-						)
-						open_scratch(raw, "text", "Codex Apply (wrong line count)")
+						codex_log.write("error", {
+							mode = mode.current(),
+							file = vim.api.nvim_buf_get_name(0),
+							reason = "wrong_line_count",
+							result = string.format("got_%d_want_%d", #body, want_lines),
+						})
+
+						recovery.show_failure({
+							reason = string.format("Apply: wrong line count (got %d, want %d)", #body, want_lines),
+							title = "Codex Apply (wrong line count)",
+							lines = raw,
+						})
 						return
 					end
 
-					-- clang preflight for C/C++
 					if is_cc_ft(ft) then
 						local ok, clang_lines, tmppath, meta =
 							clang_preflight_range_replace(0, ft, start_line, end_line, body)
@@ -1421,14 +1378,32 @@ function M.safe_preview_confirm_apply_selection()
 					body = collapse_if_doubled(body, want_lines)
 
 					if #body == 0 then
-						vim.notify("Apply: no marked replacement block found", vim.log.levels.WARN, { title = "Codex" })
-						open_scratch(raw, "text", "Codex Safe Apply (unparsed)")
+						codex_log.write("error", {
+							mode = mode.current(),
+							file = vim.api.nvim_buf_get_name(0),
+							reason = "apply_block_missing",
+						})
+
+						recovery.show_failure({
+							reason = "Apply: no marked replacement block found",
+							title = "Codex Safe Apply (unparsed)",
+							lines = raw,
+						})
 						return
 					end
 
 					if #body == 1 and vim.trim(body[1]) == "ERROR" then
-						vim.notify("Apply: Codex returned ERROR", vim.log.levels.ERROR, { title = "Codex" })
-						open_scratch(raw, "text", "Codex Safe Apply (ERROR)")
+						codex_log.write("error", {
+							mode = mode.current(),
+							file = vim.api.nvim_buf_get_name(0),
+							reason = "codex_returned_error",
+						})
+
+						recovery.show_failure({
+							reason = "Apply: Codex returned ERROR",
+							title = "Codex Safe Apply (ERROR)",
+							lines = raw,
+						})
 						return
 					end
 
@@ -1444,7 +1419,7 @@ function M.safe_preview_confirm_apply_selection()
 
 					body = trim_blank_edges(body)
 
-					local bad, why = too_large_rewrite(body, want_lines)
+					local bad, why = guard.too_large_rewrite(body, want_lines)
 					if bad then
 						open_scratch(body, "text", "Codex Output (rejected)")
 						vim.notify(
@@ -1474,7 +1449,6 @@ function M.safe_preview_confirm_apply_selection()
 					end
 
 					open_safe_diff_preview(diff_lines, "Codex Safe Diff Preview", function()
-						-- clang preflight for C/C++
 						if is_cc_ft(ft) then
 							local ok, clang_lines, tmppath, meta =
 								clang_preflight_range_replace(target_bufnr, ft, start_line, end_line, body)
@@ -1566,14 +1540,32 @@ function M.safe_preview_confirm_apply_current_function()
 					body = collapse_if_doubled(body, nil)
 
 					if #body == 0 then
-						vim.notify("Refactor: no replacement block found", vim.log.levels.WARN, { title = "Codex" })
-						open_scratch(raw, "text", "Codex Safe Refactor (unparsed)")
+						codex_log.write("error", {
+							mode = mode.current(),
+							file = vim.api.nvim_buf_get_name(0),
+							reason = "apply_block_missing",
+						})
+
+						recovery.show_failure({
+							reason = "Refactor: no replacement block found",
+							title = "Codex Safe Refactor (unparsed)",
+							lines = raw,
+						})
 						return
 					end
 
 					if #body == 1 and vim.trim(body[1]) == "ERROR" then
-						vim.notify("Refactor: Codex returned ERROR", vim.log.levels.ERROR, { title = "Codex" })
-						open_scratch(raw, "text", "Codex Safe Refactor (ERROR)")
+						codex_log.write("error", {
+							mode = mode.current(),
+							file = vim.api.nvim_buf_get_name(0),
+							reason = "codex_returned_error",
+						})
+
+						recovery.show_failure({
+							reason = "Refactor: Codex returned ERROR",
+							title = "Codex Safe Refactor (ERROR)",
+							lines = raw,
+						})
 						return
 					end
 
@@ -1589,7 +1581,7 @@ function M.safe_preview_confirm_apply_current_function()
 
 					body = trim_blank_edges(body)
 
-					local bad, why = too_large_rewrite(body, #original_lines)
+					local bad, why = guard.too_large_rewrite(body, #original_lines)
 					if bad then
 						open_scratch(body, "text", "Codex Output (rejected)")
 						vim.notify(
@@ -1600,8 +1592,7 @@ function M.safe_preview_confirm_apply_current_function()
 						return
 					end
 
-					-- Refactor guard: enforce single function
-					local bad2, why_lines = violates_refactor_single_function(original_text, body)
+					local bad2, why_lines = guard.violates_refactor_single_function(original_text, body)
 					if bad2 then
 						open_scratch(why_lines, "text", "Codex Output (refactor rejected)")
 						vim.notify("Refactor rejected by structural guard", vim.log.levels.WARN, { title = "Codex" })
@@ -1750,16 +1741,57 @@ function M.run_current_line()
 			body = collapse_if_doubled(body, 1)
 
 			if parse.looks_like_chatty_output(body) then
+				codex_log.write("error", {
+					mode = mode.current(),
+					file = vim.api.nvim_buf_get_name(0),
+					reason = "rule_break_output",
+				})
+
 				open_scratch(body, "text", "Codex Output (rule break)")
 				vim.notify("Codex violated output rules; not applying", vim.log.levels.WARN, { title = "Codex" })
 				return
 			end
 
-			-- clang preflight for C/C++
+			body = trim_blank_edges(body)
+
+			local bad_pp, why_pp = guard.rejects_preprocessor_injection(body)
+			if bad_pp then
+				codex_log.write("error", {
+					mode = mode.current(),
+					file = vim.api.nvim_buf_get_name(0),
+					reason = "preprocessor_injection_rejected",
+				})
+				open_scratch(why_pp, "text", "Codex Output (guard rejected)")
+				vim.notify("Codex output rejected by guard", vim.log.levels.WARN, { title = "Codex" })
+				return
+			end
+
 			if is_cc_ft(ft) then
 				local ok, clang_lines, tmppath, meta =
 					clang_preflight_range_replace(0, ft, lnum, lnum, { body[1] or "" })
+
+				codex_log.write("validate", {
+					mode = mode.current(),
+					file = vim.api.nvim_buf_get_name(0),
+					result = ok and "PASS" or "FAIL",
+					check = "clang",
+				})
+
+				codex_log.write("latency", {
+					mode = mode.current(),
+					file = vim.api.nvim_buf_get_name(0),
+					stage = "clang_preflight",
+					elapsed_ms = meta.elapsed_ms or -1,
+					result = ok and "PASS" or "FAIL",
+				})
+
 				if not ok then
+					codex_log.write("error", {
+						mode = mode.current(),
+						file = vim.api.nvim_buf_get_name(0),
+						reason = "clang_rejected",
+					})
+
 					open_clang_rejection_scratch({
 						title = "Codex Rejected (clang)",
 						ft = ft,
@@ -1777,6 +1809,14 @@ function M.run_current_line()
 			end
 
 			local new_line = body[1] or line
+
+			codex_log.write("apply", {
+				mode = mode.current(),
+				file = vim.api.nvim_buf_get_name(0),
+				result = "SUCCESS",
+				range = string.format("%d-%d", lnum, lnum),
+			})
+
 			vim.api.nvim_buf_set_lines(0, lnum - 1, lnum, false, { new_line })
 		end, ft)
 	end)
@@ -1804,7 +1844,6 @@ function M.run_entire_file()
 				return
 			end
 
-			-- clang preflight for C/C++ (whole file overwrite)
 			if is_cc_ft(ft) then
 				local ok, clang_lines, tmppath, meta = clang_preflight_range_replace(0, ft, 1, #buf, body)
 				if not ok then
@@ -1850,3 +1889,4 @@ function M.scratchpad_prompt(default_prompt)
 end
 
 return M
+

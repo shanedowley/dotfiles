@@ -169,9 +169,9 @@ pcall(function()
 	}, "tokyonight-night")
 end)
 
--- -----------------------------------------------------------------
+-- --------------------------------------------------------------------
 -- LSP: clangd (Neovim 0.11+ native config; fallback to nvim-lspconfig)
--- -----------------------------------------------------------------
+-- --------------------------------------------------------------------
 
 local caps = vim.lsp.protocol.make_client_capabilities()
 local ok_cmp, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")

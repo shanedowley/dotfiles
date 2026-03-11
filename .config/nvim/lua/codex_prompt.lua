@@ -2,11 +2,26 @@
 
 local M = {}
 
+local PROMPT_VERSION = "v1"
+
 -- -------------------------------------------------------------------
 -- Mode helper
 -- -------------------------------------------------------------------
 
 local mode = require("codex_mode")
+
+function M.version()
+	return PROMPT_VERSION
+end
+
+function M.header_lines()
+	local current_mode = mode.current() or "unknown"
+	return {
+		("PROMPT_VERSION: %s"):format(PROMPT_VERSION),
+		("PROMPT_MODE: %s"):format(current_mode),
+		"",
+	}
+end
 
 -- -------------------------------------------------------------------
 -- Language helpers (prompt/fence awareness)
@@ -55,7 +70,7 @@ function M.build_explain(ft)
 
 	-- Preserve high-rigor C-family explain prompt.
 	if M.is_c_family(ft) then
-		local base = table.concat({
+		local parts = vim.list_extend(M.header_lines(), {
 			"Explain the following snippet step-by-step (C and C++ where relevant).",
 			"",
 			"Rules:",
@@ -73,14 +88,15 @@ function M.build_explain(ft)
 			"- For pointer arithmetic, state the valid range (same array object or one-past) and what is UB.",
 			"- Keep it concise: maximum 12 bullets. No filler, focused on what applies to THIS snippet.",
 			"- Do NOT rewrite the code unless I ask.",
-		}, "\n")
+		})
 
+		local base = table.concat(parts, "\n")
 		local profile = mode.get()
 		return base .. (profile.explain_suffix or "")
 	end
 
 	-- Generic explain prompt for non C-family.
-	local base = table.concat({
+	local parts = vim.list_extend(M.header_lines(), {
 		string.format("Explain the following %s snippet step-by-step.", (ft ~= "" and ft) or "code"),
 		"",
 		"Rules:",
@@ -90,46 +106,50 @@ function M.build_explain(ft)
 		"- Call out likely errors, edge cases, and surprising behavior, but don’t invent context not present.",
 		"- Keep it concise: maximum 12 bullets.",
 		"- Do NOT rewrite the code unless I ask.",
-	}, "\n")
+	})
 
+	local base = table.concat(parts, "\n")
 	local profile = mode.get()
 	return base .. (profile.explain_suffix or "")
 end
 
 function M.build_apply(user_instruction, selected_text)
-	return table.concat({
-		"You are rewriting ONLY the selected text provided below.",
-		"",
-		"Return ONLY the replacement text BETWEEN these exact markers, and NOTHING else:",
-		"<<<BEGIN>>>",
-		"(replacement lines)",
-		"<<<END>>>",
-		"",
-		"ABSOLUTE RULES:",
-		"- Output must contain BOTH markers, always.",
-		"- No explanation, no questions, no advice.",
-		"- No markdown fences/backticks in your output.",
-		"- Preserve indentation and line breaks.",
-		"- Output must be valid code for the same language as the input.",
-		"",
-		"If you cannot comply, your entire output MUST be exactly:",
-		"<<<BEGIN>>>",
-		"ERROR",
-		"<<<END>>>",
-		"",
-		"Instruction:",
-		user_instruction,
-		"",
-		"Selected text:",
-		"<<<SELECTED>>>",
-		selected_text,
-		"<<<END_SELECTED>>>",
-	}, "\n")
+	return table.concat(
+		vim.list_extend(M.header_lines(), {
+			"You are rewriting ONLY the selected text provided below.",
+			"",
+			"Return ONLY the replacement text BETWEEN these exact markers, and NOTHING else:",
+			"<<<BEGIN>>>",
+			"(replacement lines)",
+			"<<<END>>>",
+			"",
+			"ABSOLUTE RULES:",
+			"- Output must contain BOTH markers, always.",
+			"- No explanation, no questions, no advice.",
+			"- No markdown fences/backticks in your output.",
+			"- Preserve indentation and line breaks.",
+			"- Output must be valid code for the same language as the input.",
+			"",
+			"If you cannot comply, your entire output MUST be exactly:",
+			"<<<BEGIN>>>",
+			"ERROR",
+			"<<<END>>>",
+			"",
+			"Instruction:",
+			user_instruction,
+			"",
+			"Selected text:",
+			"<<<SELECTED>>>",
+			selected_text,
+			"<<<END_SELECTED>>>",
+		}),
+		"\n"
+	)
 end
 
 function M.build_raw_rewrite(user_instruction, ft, line_count)
 	local lc = line_count
-	local rules = {
+	local rules = vim.list_extend(M.header_lines(), {
 		"You will be given a code snippet below.",
 		"Apply my instruction to that snippet.",
 		"",
@@ -137,7 +157,7 @@ function M.build_raw_rewrite(user_instruction, ft, line_count)
 		"- Output ONLY the rewritten code. No prose. No explanations. No questions.",
 		"- No markdown fences/backticks.",
 		"- Preserve indentation.",
-	}
+	})
 
 	if lc then
 		table.insert(rules, string.format("- Output must be exactly %d line(s).", lc))
@@ -157,35 +177,41 @@ function M.build_raw_rewrite(user_instruction, ft, line_count)
 end
 
 function M.build_unified_diff(instruction)
-	return table.concat({
-		"Generate a unified diff that applies my instruction to the provided snippet.",
-		"",
-		"ABSOLUTE OUTPUT RULES:",
-		"- Output ONLY a unified diff. No prose. No explanations.",
-		"- No markdown fences/backticks.",
-		"- Use these exact filenames in the headers:",
-		"  --- a/selection",
-		"  +++ b/selection",
-		"- Include at least one hunk header starting with @@.",
-		"",
-		"Instruction:",
-		instruction,
-	}, "\n")
+	return table.concat(
+		vim.list_extend(M.header_lines(), {
+			"Generate a unified diff that applies my instruction to the provided snippet.",
+			"",
+			"ABSOLUTE OUTPUT RULES:",
+			"- Output ONLY a unified diff. No prose. No explanations.",
+			"- No markdown fences/backticks.",
+			"- Use these exact filenames in the headers:",
+			"  --- a/selection",
+			"  +++ b/selection",
+			"- Include at least one hunk header starting with @@.",
+			"",
+			"Instruction:",
+			instruction,
+		}),
+		"\n"
+	)
 end
 
 function M.build_entire_file_rewrite(user_instruction)
-	return table.concat({
-		"You will be given an entire file below.",
-		"Apply my instruction to it.",
-		"",
-		"ABSOLUTE OUTPUT RULES:",
-		"- Output ONLY the full rewritten file contents. No prose. No patch format. No approvals talk.",
-		"- No markdown fences/backticks.",
-		"- Preserve content you are not changing.",
-		"",
-		"Instruction:",
-		user_instruction,
-	}, "\n")
+	return table.concat(
+		vim.list_extend(M.header_lines(), {
+			"You will be given an entire file below.",
+			"Apply my instruction to it.",
+			"",
+			"ABSOLUTE OUTPUT RULES:",
+			"- Output ONLY the full rewritten file contents. No prose. No patch format. No approvals talk.",
+			"- No markdown fences/backticks.",
+			"- Preserve content you are not changing.",
+			"",
+			"Instruction:",
+			user_instruction,
+		}),
+		"\n"
+	)
 end
 
 return M
