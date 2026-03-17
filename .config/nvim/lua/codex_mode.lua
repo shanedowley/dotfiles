@@ -2,7 +2,7 @@
 local M = {}
 
 local state = {
-	current = "balanced",
+	current = "refactor",
 }
 
 local profiles = {
@@ -92,3 +92,4 @@ function M.cycle()
 end
 
 return M
+

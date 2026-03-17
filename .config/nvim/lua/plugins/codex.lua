@@ -2,50 +2,42 @@
 return {
 	{
 		"ishiooon/codex.nvim",
-		dependencies = { "folke/snacks.nvim" },
+		enabled = false,
+	},
 
-		-- Load on first Codex-related keypress
-		cmd = { "Codex", "CodexFocus", "CodexTreeAdd" },
+	{
+		"folke/which-key.nvim",
+		opts = function(_, opts)
+			opts = opts or {}
+			opts.spec = opts.spec or {}
 
-		config = function()
-			require("codex").setup({
-				status_indicator = {
-					enabled = false,
-				},
-			})
+			table.insert(opts.spec, { "<leader>c", group = "codex" })
+
+			return opts
 		end,
+	},
 
+	{
+		"nvim-lua/plenary.nvim",
+		lazy = true,
+	},
+
+	{
+		"nvim-telescope/telescope.nvim",
+		lazy = true,
+	},
+	{
+		dir = vim.fn.stdpath("config"),
+		name = "codex-cli-workflow",
+		lazy = false,
 		keys = {
-			----------------------------------------------------------------
-			-- Group header (restores top-level +codex in which-key)
-			----------------------------------------------------------------
-			{ "<leader>c", desc = "+codex" },
-
-			----------------------------------------------------------------
-			-- Terminal-based codex.nvim actions
-			----------------------------------------------------------------
-			{ "<leader>ct", "<cmd>Codex<cr>", desc = "Terminal: Toggle/Open" },
-			{ "<leader>cT", "<cmd>CodexFocus<cr>", desc = "Terminal: Focus" },
-
-			-- Tree views (neo-tree / oil)
-			{
-				"<leader>cA",
-				"<cmd>CodexTreeAdd<cr>",
-				ft = { "neo-tree", "oil" },
-				desc = "Terminal: Add file to context",
-			},
-
-			----------------------------------------------------------------
-			-- Advanced CLI workflows (your codex_cli.lua)
-			----------------------------------------------------------------
-
 			-- Visual mode actions
 			{
 				"<leader>cE",
 				function()
 					require("codex_cli").explain_selection()
 				end,
-				mode = "x",
+				mode = { "x", "v" },
 				desc = "Explain selection (C learning)",
 			},
 			{
@@ -53,7 +45,7 @@ return {
 				function()
 					require("codex_cli").replace_selection()
 				end,
-				mode = "v",
+				mode = { "x", "v" },
 				desc = "Replace selection",
 			},
 			{
@@ -61,7 +53,7 @@ return {
 				function()
 					require("codex_cli").open_output_scratch()
 				end,
-				mode = "v",
+				mode = { "x", "v" },
 				desc = "Open output in scratch buffer",
 			},
 			{
@@ -69,7 +61,7 @@ return {
 				function()
 					require("codex_cli").apply_inline()
 				end,
-				mode = "v",
+				mode = { "x", "v" },
 				desc = "Apply inline (smart diff)",
 			},
 			{
@@ -77,8 +69,8 @@ return {
 				function()
 					require("codex_cli").preview_diff()
 				end,
-				mode = "v",
-				desc = "Preview diff",
+				mode = { "x", "v" },
+				desc = "Preview diff (selection)",
 			},
 			{
 				"<leader>cw",
@@ -117,7 +109,7 @@ return {
 						end)
 					end)
 				end,
-				mode = "x",
+				mode = { "x", "v" },
 				desc = "Write output to file",
 			},
 
@@ -135,6 +127,27 @@ return {
 					require("codex_cli").safe_preview_confirm_apply_current_function()
 				end,
 				desc = "Safe refactor preview (current function)",
+			},
+			{
+				"<leader>cD",
+				function()
+					require("codex_cli").preview_diff_current_line()
+				end,
+				desc = "Preview diff (current line)",
+			},
+			{
+				"<leader>cL",
+				function()
+					require("codex_log").open_log()
+				end,
+				desc = "Open Codex log",
+			},
+			{
+				"<leader>cH",
+				function()
+					require("codex_cli").health_check()
+				end,
+				desc = "Codex health check",
 			},
 			{
 				"<leader>cl",
@@ -164,17 +177,22 @@ return {
 					local is_visual = (mode == "v" or mode == "V" or mode == "\22")
 
 					if is_visual then
-						-- leave Visual mode but keep '< and '> marks so selection is still available
 						vim.cmd("normal! <Esc>")
 					end
 
-					-- defer so which-key/lazy key handler finishes, then prompt can render
 					vim.schedule(function()
 						require("codex_cli").scratchpad_prompt()
 					end)
 				end,
 				mode = { "n", "x" },
 				desc = "Scratchpad prompt",
+			},
+			{
+				"<leader>cS",
+				function()
+					require("codex_cli").show_state()
+				end,
+				desc = "Show Codex workflow state",
 			},
 		},
 	},

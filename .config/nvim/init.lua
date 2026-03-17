@@ -1,10 +1,12 @@
--- Set <Leader> key
+-- ~/.config/nvim/init.lua
+
+-- Leader keys
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
 vim.keymap.set("x", "<leader>pm", function()
 	vim.notify("probe: mode=" .. vim.fn.mode(), vim.log.levels.WARN)
-end, { desc = "probe mode in visual" })
+end, { desc = "Probe mode in visual" })
 
 local function safe_require(mod)
 	local ok, m = pcall(require, mod)
@@ -17,7 +19,7 @@ local function safe_require(mod)
 	return nil
 end
 
--- Standard macOS XDG layout (no sandbox overrides)
+-- Standard macOS XDG layout
 -- data  = ~/.local/share/nvim
 -- state = ~/.local/state/nvim
 -- cache = ~/.cache/nvim
@@ -33,11 +35,11 @@ end
 -- Ensure filetype detection is on
 vim.cmd("filetype plugin indent on")
 
--- Ensure timeouts are sane
+-- Timeouts
 vim.o.timeout = true
 vim.o.timeoutlen = 1000
 
--- Curor settings and behaviours
+-- Cursor settings and behaviours
 vim.o.guicursor = table.concat({
 	"n-v:block", -- Normal + Visual = block
 	"i:hor20", -- Insert = horizontal underline (20% height)
@@ -47,18 +49,18 @@ vim.o.guicursor = table.concat({
 }, ",")
 
 -- ──────────────────────────────────────────────
--- 🪟 Neovide GUI Configuration (macOS)
+-- Neovide GUI Configuration (macOS)
 -- ──────────────────────────────────────────────
 if vim.g.neovide then
 	-- Font and UI scaling
-	vim.o.guifont = "FiraCode Nerd Font Mono:h14" -- use any installed font
-	vim.g.neovide_scale_factor = 1.0 -- overall zoom; adjust with Cmd+Plus/Minus
+	vim.o.guifont = "FiraCode Nerd Font Mono:h14"
+	vim.g.neovide_scale_factor = 1.0
 
 	-- Cursor animations
 	vim.g.neovide_cursor_animation_length = 0.05
 	vim.g.neovide_cursor_trail_size = 0.3
 	vim.g.neovide_cursor_antialiasing = true
-	vim.g.neovide_cursor_vfx_mode = "railgun" -- or "torpedo", "sonicboom", "wireframe"
+	vim.g.neovide_cursor_vfx_mode = "railgun"
 
 	-- Transparency and blur
 	vim.g.neovide_opacity = 0.96
@@ -70,36 +72,31 @@ if vim.g.neovide then
 	-- Remember size between launches
 	vim.g.neovide_remember_window_size = true
 
-	-- Custom keybindings (optional)
-	vim.keymap.set("n", "<D-s>", ":w<CR>") -- Cmd+S to save
-	vim.keymap.set("v", "<D-c>", '"+y') -- Cmd+C to copy
-	vim.keymap.set("n", "<D-v>", '"+P') -- Cmd+V to paste in normal mode
-	vim.keymap.set("i", "<D-v>", '<ESC>"+Pli') -- Cmd+V in insert mode
+	-- Custom keybindings
+	vim.keymap.set("n", "<D-s>", ":w<CR>")
+	vim.keymap.set("v", "<D-c>", '"+y')
+	vim.keymap.set("n", "<D-v>", '"+P')
+	vim.keymap.set("i", "<D-v>", '<ESC>"+Pli')
 end
 
--- 🪟 Dynamic Neovide window title (modern method)
+-- Dynamic Neovide window title
 if vim.g.neovide then
-	-- enable Neovim's title reporting
 	vim.o.title = true
 
-	-- function to update the title
 	local function update_title()
 		local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
 		local file = vim.fn.expand("%:t")
-		local title
 
 		if file ~= "" then
 			local mode = vim.api.nvim_get_mode().mode
-			title = string.format("nvim — %s/%s [%s]", cwd, file, mode)
-			vim.o.titlestring = title
+			vim.o.titlestring = string.format("nvim — %s/%s [%s]", cwd, file, mode)
 		else
 			vim.o.titlestring = "nvim — " .. cwd
 		end
 	end
-	-- run once at startup
+
 	update_title()
 
-	-- update on file or directory changes
 	vim.api.nvim_create_autocmd({ "BufEnter", "DirChanged" }, {
 		callback = update_title,
 	})
@@ -108,27 +105,32 @@ end
 -- UI/UX tweaks
 vim.o.cmdheight = 1
 vim.opt.number = true
-vim.opt.scrolloff = 4
 vim.opt.relativenumber = true
+vim.opt.scrolloff = 4
+vim.opt.sidescrolloff = 8
 vim.opt.clipboard = "unnamedplus"
 vim.opt.termguicolors = true
+
 vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 vim.opt.expandtab = true
 vim.opt.smartindent = true
+
 vim.opt.splitbelow = true
 vim.opt.splitright = true
 
--- Mouse + focus/hover behavior
-vim.opt.mouse = "a" -- enable mouse everywhere
-vim.opt.mousemodel = "popup" -- popup menu for clicks
-vim.opt.mousehide = true -- hide mouse cursor when typing
-vim.opt.mousemoveevent = true -- send mouse-move events to Neovim
-vim.opt.mousefocus = true -- focus the split under the mouse
+-- Mouse + focus/hover behaviour
+vim.opt.mouse = "a"
+vim.opt.mousemodel = "popup"
+vim.opt.mousehide = true
+vim.opt.mousemoveevent = true
+vim.opt.mousefocus = true
 vim.opt.mousescroll = "ver:3,hor:6"
 
+-- Lazy.nvim bootstrap
 local lazypath = vim.fn.stdpath("config") .. "/lazy/lazy.nvim"
 local uv = vim.uv or vim.loop
+
 if not uv.fs_stat(lazypath) then
 	vim.fn.system({
 		"git",
@@ -139,12 +141,13 @@ if not uv.fs_stat(lazypath) then
 		lazypath,
 	})
 end
+
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup("plugins", {
 	lockfile = vim.fn.stdpath("config") .. "/lazy-lock.json",
 	performance = {
-		cache = { enabled = true }, -- good default; speeds startup
+		cache = { enabled = true },
 	},
 	rocks = {
 		enabled = false,
@@ -155,10 +158,10 @@ require("lazy").setup("plugins", {
 -- Keymaps: single entrypoint
 safe_require("keymaps.init")
 
--- Initialise for Codex, mode and commands
+-- Initialise Codex mode + commands
 safe_require("codex_setup")
 
--- Call themes
+-- Theme cycling
 pcall(function()
 	require("theme_cycle").setup({
 		{ scheme = "tokyonight-night", id = "tokyonight" },
@@ -184,7 +187,14 @@ local function clangd_root(fname)
 	if fname:sub(1, #projects) == projects then
 		return projects
 	end
-	local root = vim.fs.root(fname, { "compile_commands.json", "compile_flags.txt", "CMakeLists.txt", ".git" })
+
+	local root = vim.fs.root(fname, {
+		"compile_commands.json",
+		"compile_flags.txt",
+		"CMakeLists.txt",
+		".git",
+	})
+
 	return root or vim.fs.dirname(fname)
 end
 
@@ -194,12 +204,10 @@ local clangd_cfg = {
 	filetypes = { "c", "cpp", "objc", "objcpp" },
 }
 
--- Neovim 0.11+ way
 if vim.lsp.config and vim.lsp.enable then
 	vim.lsp.config.clangd = clangd_cfg
 	vim.lsp.enable("clangd")
 else
-	-- Fallback for older setups
 	local ok_lspconfig, lspconfig = pcall(require, "lspconfig")
 	if ok_lspconfig then
 		lspconfig.clangd.setup(clangd_cfg)
@@ -207,29 +215,25 @@ else
 end
 
 -- Soft wrap for coding
-vim.opt.wrap = true -- enable visual wrap
-vim.opt.linebreak = true -- wrap at word boundaries
+vim.opt.wrap = true
+vim.opt.linebreak = true
 vim.opt.list = true
 vim.opt.listchars = {
-	eol = "↴", -- end of line
-	tab = "→ ", -- tab shown as arrow + space
-	trail = "·", -- trailing space as a middle dot
-	extends = "⟩", -- when text extends off screen
-	precedes = "⟨", -- when text continues to the left
-	nbsp = "␣", -- non-breaking space
+	eol = "↴",
+	tab = "→ ",
+	trail = "·",
+	extends = "⟩",
+	precedes = "⟨",
+	nbsp = "␣",
 }
+
 vim.opt.cursorline = true
 vim.opt.showmode = false
-
--- Sign column (for git/lsp markers)
-vim.opt.signcolumn = "yes" -- always show, avoids text shifting
+vim.opt.signcolumn = "yes"
 
 -- Search tweaks
-vim.opt.ignorecase = true -- ignore case when searching...
-vim.opt.smartcase = true -- ...unless search has capitals
-
--- Scrolling comfort
-vim.opt.sidescrolloff = 8 -- same for left/right scrolling
+vim.opt.ignorecase = true
+vim.opt.smartcase = true
 
 -- Highlight curly quotes in Lua config automatically
 local group = vim.api.nvim_create_augroup("HighlightCurlyQuotes", { clear = true })

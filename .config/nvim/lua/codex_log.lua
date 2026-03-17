@@ -66,4 +66,22 @@ function M.clear()
 	end
 end
 
+function M.open_log()
+	local path = vim.fn.stdpath("state") .. "/codex.log"
+
+	-- open log in split
+	vim.cmd("botright split " .. path)
+
+	-- jump to end
+	vim.cmd("normal! G")
+
+	-- mark buffer read-only
+	vim.bo.readonly = true
+	vim.bo.modifiable = false
+end
+
+vim.api.nvim_create_user_command("CodexLog", function()
+	require("codex_log").open_log()
+end, {})
+
 return M
