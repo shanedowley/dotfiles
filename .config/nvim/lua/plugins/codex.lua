@@ -115,6 +115,27 @@ return {
 
 			-- Normal mode actions
 			{
+				"<leader>cc",
+				function()
+					require("codex_cli").toggle_context()
+				end,
+				desc = "Toggle Codex context injection",
+			},
+			{
+				"<leader>cC",
+				function()
+					require("codex_cli").show_context()
+				end,
+				desc = "Show Codex project context",
+			},
+			{
+				"<leader>cE",
+				function()
+					require("codex_cli").explain_current_line()
+				end,
+				desc = "Explain current line",
+			},
+			{
 				"<leader>cR",
 				function()
 					require("codex_cli").replace_current_function()
@@ -193,6 +214,41 @@ return {
 					require("codex_cli").show_state()
 				end,
 				desc = "Show Codex workflow state",
+			},
+			{
+				"<leader>cT",
+				function()
+					require("codex_cli").show_latency()
+				end,
+				desc = "Show Codex latency report",
+			},
+			{
+				"<leader>cV",
+				function()
+					require("codex_cli").show_prompt_version()
+				end,
+				desc = "Show Codex prompt version info",
+			},
+			{
+				"<leader>cX",
+				function()
+					require("codex_cli").show_recovery()
+				end,
+				desc = "Show Codex recovery report",
+			},
+			{
+				"<leader>c,",
+				function()
+					require("codex_cli").show_last_op()
+				end,
+				desc = "Show last Codex operation",
+			},
+			{
+				"<leader>c.",
+				function()
+					require("codex_cli").repeat_last_op()
+				end,
+				desc = "Repeat last Codex prompt",
 			},
 		},
 	},

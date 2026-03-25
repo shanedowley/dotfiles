@@ -14,11 +14,11 @@ return {
 					"<C-d>",
 					"<C-b>",
 					"<C-f>",
+					"<C-y>",
+					"<C-e>",
 					"zt",
 					"zz",
 					"zb",
-					"gg",
-					"G",
 				},
 			})
 		end,
@@ -48,7 +48,7 @@ return {
 					lualine_x = {
 						{
 							function()
-								return "⚙ Codex: " .. codex_status.status()
+								return codex_status.status()
 							end,
 							color = function()
 								return { fg = codex_status.color(), gui = "bold" }

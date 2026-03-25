@@ -1,0 +1,170 @@
+return {
+	{
+		"rcarriga/nvim-notify",
+		lazy = false,
+		priority = 1000,
+		config = function()
+			local notify = require("notify")
+
+			local allowed = {
+				top_right = true,
+				center = true,
+				bottom_left = true,
+			}
+
+			local function placement_path()
+				return vim.fn.stdpath("state") .. "/codex_notify_placement.txt"
+			end
+
+			local function read_saved_placement()
+				local path = placement_path()
+				if vim.fn.filereadable(path) ~= 1 then
+					return nil
+				end
+
+				local ok, lines = pcall(vim.fn.readfile, path)
+				if not ok or not lines or #lines == 0 then
+					return nil
+				end
+
+				local value = vim.trim(lines[1] or "")
+				if allowed[value] then
+					return value
+				end
+
+				return nil
+			end
+
+			local function write_saved_placement(value)
+				local path = placement_path()
+				pcall(vim.fn.mkdir, vim.fn.fnamemodify(path, ":h"), "p")
+				return pcall(vim.fn.writefile, { value }, path)
+			end
+
+			local state = {
+				placement = read_saved_placement() or "top_right",
+			}
+
+			local function stage_top_right()
+				return "fade_in_slide_out"
+			end
+
+			local function stage_center()
+				return {
+					function(state2)
+						local next_height = state2.message.height + 2
+						local next_width = state2.message.width + 2
+						return {
+							relative = "editor",
+							anchor = "NW",
+							row = math.floor((vim.o.lines - next_height) / 2),
+							col = math.floor((vim.o.columns - next_width) / 2),
+							width = next_width,
+							height = next_height,
+							border = "rounded",
+							style = "minimal",
+							opacity = 100,
+						}
+					end,
+					function(state2, win)
+						return {
+							row = math.floor((vim.o.lines - state2.message.height - 2) / 2),
+							col = math.floor((vim.o.columns - state2.message.width - 2) / 2),
+							width = state2.message.width + 2,
+							height = state2.message.height + 2,
+							opacity = 100,
+							time = true,
+						}
+					end,
+					function(state2, win)
+						return {
+							opacity = { 0 },
+							time = 100,
+						}
+					end,
+				}
+			end
+
+			local function stage_bottom_left()
+				return {
+					function(state2)
+						local next_height = state2.message.height + 2
+						local next_width = state2.message.width + 2
+						return {
+							relative = "editor",
+							anchor = "SW",
+							row = vim.o.lines - 2,
+							col = 2,
+							width = next_width,
+							height = next_height,
+							border = "rounded",
+							style = "minimal",
+							opacity = 100,
+						}
+					end,
+					function(state2, win)
+						return {
+							row = vim.o.lines - 2,
+							col = 2,
+							width = state2.message.width + 2,
+							height = state2.message.height + 2,
+							opacity = 100,
+							time = true,
+						}
+					end,
+					function(state2, win)
+						return {
+							opacity = { 0 },
+							time = 100,
+						}
+					end,
+				}
+			end
+
+			local function stages_for(placement)
+				if placement == "center" then
+					return stage_center()
+				end
+				if placement == "bottom_left" then
+					return stage_bottom_left()
+				end
+				return stage_top_right()
+			end
+
+			local function apply_setup()
+				notify.setup({
+					timeout = 1500,
+					render = "minimal",
+					stages = stages_for(state.placement),
+				})
+			end
+
+			apply_setup()
+			vim.notify = notify
+
+			_G.CodexNotifyPlacement = {
+				get = function()
+					return state.placement
+				end,
+				set = function(name)
+					if not allowed[name] then
+						return false, "Invalid placement: " .. tostring(name)
+					end
+
+					state.placement = name
+					apply_setup()
+
+					local ok = write_saved_placement(name)
+					if not ok then
+						return false, "Placement set, but failed to persist it"
+					end
+
+					return true, state.placement
+				end,
+				path = function()
+					return placement_path()
+				end,
+			}
+		end,
+	},
+}

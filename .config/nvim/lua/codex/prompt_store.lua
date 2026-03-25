@@ -122,6 +122,56 @@ local function trim_trailing_newlines(s)
 	return (s or ""):gsub("\n+$", "")
 end
 
+local function trim(s)
+	return vim.trim(s or "")
+end
+
+local function parse_prompt_file(content)
+	content = content or ""
+	content = trim_trailing_newlines(content)
+
+	if content == "" then
+		return nil, "empty"
+	end
+
+	local lines = vim.split(content, "\n", { plain = true })
+
+	local sep_idx = nil
+	for i, line in ipairs(lines) do
+		if trim(line) == "---" then
+			sep_idx = i
+			break
+		end
+	end
+
+	-- Structured format:
+	-- VERSION: v2
+	-- NAME: apply
+	--
+	-- ---
+	-- <prompt body>
+	if sep_idx then
+		local body_lines = {}
+		for i = sep_idx + 1, #lines do
+			body_lines[#body_lines + 1] = lines[i]
+		end
+
+		local body = trim_trailing_newlines(table.concat(body_lines, "\n"))
+		if trim(body) == "" then
+			return nil, "malformed"
+		end
+
+		return body, "structured"
+	end
+
+	-- Legacy format: whole file is the body.
+	if trim(content) == "" then
+		return nil, "empty"
+	end
+
+	return content, "legacy"
+end
+
 function M.dir()
 	return CONFIG_PROMPT_DIR
 end
@@ -134,19 +184,28 @@ function M.get(name)
 	local path = M.path_for(name)
 	local content = read_file(path)
 
-	if content and content ~= "" then
-		return trim_trailing_newlines(content), path, false
+	if not content then
+		return DEFAULTS[name], path, "fallback_missing"
 	end
 
-	return DEFAULTS[name], path, true
+	local body, kind = parse_prompt_file(content)
+	if body and body ~= "" then
+		return body, path, "external_" .. kind
+	end
+
+	if kind == "empty" then
+		return DEFAULTS[name], path, "fallback_empty"
+	end
+
+	return DEFAULTS[name], path, "fallback_malformed"
 end
 
 function M.version()
 	local parts = {}
 
 	for name, _ in pairs(DEFAULTS) do
-		local content, _, _ = M.get(name)
-		parts[#parts + 1] = name .. ":" .. tostring(#(content or ""))
+		local content, _, source = M.get(name)
+		parts[#parts + 1] = name .. ":" .. tostring(#(content or "")) .. ":" .. tostring(source or "unknown")
 	end
 
 	table.sort(parts)

@@ -1,9 +1,34 @@
 # =========================
-# Core defaults (TOP LEVEL)
+# AeroSpace config
+# =========================
+#
+# Workspace intent map
+# 0 = Neovide
+# 1 = Ghostty
+# 2 = Calendar
+# 3 = Mail
+# 4 = Safari / browsing / research
+# 5 = ChatGPT
+# 6 = Gemini 
+# 7 = Notes
+# 8 = Finder
+# 9 = Microsoft Office
+#
+# Change discipline
+# 1. Edit this file
+# 2. Validate first:
+#    aerospace reload-config --dry-run
+# 3. If valid, reload:
+#    aerospace reload-config
+
+# =========================
+# Core defaults
 # =========================
 
-# --- Sketchybar integration (TOP LEVEL) ---
-exec-on-workspace-change = ['/bin/bash', '-lc',
+# SketchyBar integration
+exec-on-workspace-change = [
+  '/bin/bash',
+  '-lc',
   'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE="$AEROSPACE_FOCUSED_WORKSPACE"'
 ]
 
@@ -15,77 +40,75 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 [gaps]
 outer.top = 40
 
-# ===========================
-# Apps assigned to workspaces
-# ===========================
+# =========================
+# Primary fullscreen apps
+# =========================
+# Rule design:
+# - One app = one clear rule
+# - No overlapping rules unless explicitly intended
+# - These apps open on their assigned workspace in native macOS fullscreen
 
 [[on-window-detected]]
 if.app-id = 'com.neovide.neovide'
-run = 'move-node-to-workspace 0'
+run = ['move-node-to-workspace 0', 'macos-native-fullscreen']
 
 [[on-window-detected]]
 if.app-id = 'com.mitchellh.ghostty'
-run = 'move-node-to-workspace 1'
+run = ['move-node-to-workspace 1', 'macos-native-fullscreen']
 
 [[on-window-detected]]
 if.app-id = 'com.apple.iCal'
-run = 'move-node-to-workspace 2'
+run = ['move-node-to-workspace 2', 'macos-native-fullscreen']
 
 [[on-window-detected]]
 if.app-id = 'com.apple.mail'
-run = 'move-node-to-workspace 3'
+run = ['move-node-to-workspace 3', 'macos-native-fullscreen']
 
 [[on-window-detected]]
 if.app-id = 'com.apple.Safari'
-run = 'move-node-to-workspace 4'
+run = ['move-node-to-workspace 4', 'macos-native-fullscreen']
 
 [[on-window-detected]]
 if.app-id = 'com.openai.chat'
-run = 'move-node-to-workspace 5'
+run = ['move-node-to-workspace 5', 'macos-native-fullscreen']
 
 [[on-window-detected]]
-if.app-id = 'com.openai.codex'
-run = 'move-node-to-workspace 6'
+if.app-name-regex-substring = 'Gemini'
+run = ['move-node-to-workspace 6', 'macos-native-fullscreen']
 
 [[on-window-detected]]
 if.app-id = 'com.apple.Notes'
-run = 'move-node-to-workspace 7'
+run = ['move-node-to-workspace 7', 'macos-native-fullscreen']
 
 [[on-window-detected]]
 if.app-id = 'com.apple.finder'
-run = 'move-node-to-workspace 8'
+run = ['move-node-to-workspace 8', 'macos-native-fullscreen']
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.Powerpoint'
-run = 'move-node-to-workspace 9'
+run = ['move-node-to-workspace 9', 'macos-native-fullscreen']
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.Word'
-run = 'move-node-to-workspace 9'
+run = ['move-node-to-workspace 9', 'macos-native-fullscreen']
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.Excel'
-run = 'move-node-to-workspace 9'
+run = ['move-node-to-workspace 9', 'macos-native-fullscreen']
 
-[[on-window-detected]]
-if.app-id = 'com.microsoft.teams2'
-run = 'move-node-to-workspace 9'
-
-# ===========================
-# Float these apps by default 
-# ===========================
+# =========================
+# Floating utility / comms apps
+# =========================
+# These apps should remain floating only.
+# No workspace assignment rules are defined for them.
 
 [[on-window-detected]]
 if.app-id = 'com.apple.AddressBook'
-run = ['layout floating']
-
-[[on-window-detected]]
-if.app-id = 'com.apple.mail'
-run = ['layout floating']
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.systempreferences'
-run = ['layout floating']
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.calculator'
@@ -135,10 +158,10 @@ run = 'layout floating'
 if.app-id = 'com.microsoft.teams2'
 run = 'layout floating'
 
-# ==========================================
+# =========================
 # Keybindings (HYPER)
-# Caps Lock (Karabiner) = ctrl+alt+cmd+shift
-# ==========================================
+# Caps Lock via Karabiner = ctrl+alt+cmd+shift
+# =========================
 
 [mode.main.binding]
 
@@ -148,14 +171,14 @@ ctrl-alt-cmd-shift-enter = "fullscreen"
 # Toggle floating / tiling
 ctrl-alt-cmd-shift-t = "layout floating tiling"
 
-# Focus (keep hjkl)
+# Focus movement
 ctrl-alt-cmd-shift-h = "focus left"
 ctrl-alt-cmd-shift-l = "focus right"
 ctrl-alt-cmd-shift-k = "focus up"
 ctrl-alt-cmd-shift-j = "focus down"
 
 # Move windows within layout
-# (can't do "hyper+shift", so use u/i/o/p)
+# Hyper+Shift is not available, so use u/i/o/p
 ctrl-alt-cmd-shift-u = "move left"
 ctrl-alt-cmd-shift-p = "move right"
 ctrl-alt-cmd-shift-o = "move up"
@@ -172,7 +195,6 @@ ctrl-alt-cmd-shift-7 = "workspace 7"
 ctrl-alt-cmd-shift-8 = "workspace 8"
 ctrl-alt-cmd-shift-9 = "workspace 9"
 ctrl-alt-cmd-shift-0 = "workspace 0"
-
 
 # Move active window to a workspace (no auto-switch)
 ctrl-alt-cmd-shift-z = "move-node-to-workspace 1"
@@ -211,7 +233,3 @@ shift-h = "resize width -8"
 shift-l = "resize width +8"
 shift-j = "resize height +8"
 shift-k = "resize height -8"
-
-
-
-

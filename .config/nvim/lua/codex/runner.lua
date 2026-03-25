@@ -2,15 +2,7 @@
 local M = {}
 
 local uv = vim.uv or vim.loop
-
-local spinner = {
-	timer = nil,
-	idx = 1,
-	notif = nil,
-	active = false,
-}
-
-local frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+local ui = require("codex.ui")
 
 local function log_event(event, data)
 	local ok, codex_log = pcall(require, "codex_log")
@@ -28,76 +20,6 @@ local function log_event(event, data)
 			data = data,
 			ts = os.date("!%Y-%m-%dT%H:%M:%SZ"),
 		})
-	end
-end
-
-local function ui_start(msg)
-	if spinner.timer then
-		pcall(spinner.timer.stop, spinner.timer)
-		pcall(spinner.timer.close, spinner.timer)
-		spinner.timer = nil
-	end
-
-	spinner.active = true
-	spinner.idx = 1
-
-	local ok_notify, notify = pcall(require, "notify")
-	if ok_notify then
-		spinner.notif = notify(msg .. " " .. frames[spinner.idx], vim.log.levels.INFO, {
-			title = "Codex",
-			timeout = false,
-		})
-	else
-		vim.api.nvim_echo({ { msg .. " " .. frames[spinner.idx], "ModeMsg" } }, false, {})
-	end
-
-	spinner.timer = uv.new_timer()
-	spinner.timer:start(
-		120,
-		120,
-		vim.schedule_wrap(function()
-			if not spinner.active then
-				return
-			end
-
-			spinner.idx = (spinner.idx % #frames) + 1
-			local text = msg .. " " .. frames[spinner.idx]
-
-			local ok2, notify2 = pcall(require, "notify")
-			if ok2 then
-				spinner.notif = notify2(text, vim.log.levels.INFO, {
-					title = "Codex",
-					timeout = false,
-					replace = spinner.notif,
-				})
-			else
-				vim.api.nvim_echo({ { text, "ModeMsg" } }, false, {})
-			end
-		end)
-	)
-end
-
-local function ui_stop(msg, level)
-	spinner.active = false
-
-	if spinner.timer then
-		pcall(spinner.timer.stop, spinner.timer)
-		pcall(spinner.timer.close, spinner.timer)
-		spinner.timer = nil
-	end
-
-	local ok_notify, notify = pcall(require, "notify")
-	if ok_notify then
-		notify(msg, level or vim.log.levels.INFO, {
-			title = "Codex",
-			timeout = 1500,
-			replace = spinner.notif,
-		})
-	else
-		vim.api.nvim_echo({ { msg, "ModeMsg" } }, false, {})
-		vim.defer_fn(function()
-			vim.api.nvim_echo({ { "" } }, false, {})
-		end, 1200)
 	end
 end
 
@@ -128,7 +50,13 @@ function M.run(opts)
 
 	local prompt_text = opts.prompt
 	if not prompt_text or prompt_text == "" then
-		vim.notify("Codex runner: missing prompt", vim.log.levels.ERROR, { title = "Codex" })
+		log_event("fail", {
+			op = opts.op or "codex_run",
+			stage = "codex_exec",
+			reason = "missing_prompt",
+		})
+
+		ui.notify("Codex runner: missing prompt", vim.log.levels.ERROR, { title = "Codex", timeout = 1500 })
 		return
 	end
 
@@ -138,7 +66,7 @@ function M.run(opts)
 	local started_ns = uv.hrtime()
 	local op = opts.op or "codex_run"
 
-	ui_start(spinner_message)
+	ui.start(spinner_message)
 
 	log_event("start", {
 		op = op,
@@ -184,10 +112,11 @@ function M.run(opts)
 				}
 
 				if code ~= 0 then
-					ui_stop("Codex failed (see output)", vim.log.levels.ERROR)
+					ui.stop("Codex failed (see output)", vim.log.levels.ERROR)
 
-					log_event("error", {
+					log_event("fail", {
 						op = op,
+						stage = "codex_exec",
 						code = code,
 						latency_ms = latency_ms,
 						stdout_lines = #stdout,
@@ -208,7 +137,7 @@ function M.run(opts)
 					return
 				end
 
-				ui_stop("Codex done", vim.log.levels.INFO)
+				ui.stop("Codex done", vim.log.levels.INFO)
 
 				log_event("response", {
 					op = op,
@@ -231,10 +160,11 @@ function M.run(opts)
 	})
 
 	if job_id <= 0 then
-		ui_stop("Failed to start Codex job", vim.log.levels.ERROR)
+		ui.stop("Failed to start Codex job", vim.log.levels.ERROR)
 
-		log_event("error", {
+		log_event("fail", {
 			op = op,
+			stage = "codex_exec",
 			reason = "jobstart_failed",
 			result = tostring(job_id),
 			prompt_len = #prompt_text,
@@ -266,13 +196,14 @@ function M.run_embedded(input, instruction, opts)
 	local lang = fence_lang(opts.filetype)
 	local prompt_text = instruction .. "\n\n---\nHere is the code/snippet:\n```" .. lang .. "\n" .. input .. "\n```"
 
-	local env = opts.env or {
-		PAGER = "cat",
-		GIT_PAGER = "cat",
-		LESS = "-FRSX",
-		NO_COLOR = "1",
-		TERM = "xterm-256color",
-	}
+	local env = opts.env
+		or {
+			PAGER = "cat",
+			GIT_PAGER = "cat",
+			LESS = "-FRSX",
+			NO_COLOR = "1",
+			TERM = "xterm-256color",
+		}
 
 	M.run(vim.tbl_extend("force", opts, {
 		prompt = prompt_text,

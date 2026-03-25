@@ -6,6 +6,7 @@ local PROMPT_VERSION = "v2"
 
 local mode = require("codex_mode")
 local store = require("codex.prompt_store")
+local context = require("codex.context")
 
 function M.version()
 	return PROMPT_VERSION
@@ -64,6 +65,14 @@ local function with_header(body)
 	return table.concat(vim.list_extend(M.header_lines(), { body }), "\n")
 end
 
+local function maybe_with_context(body)
+	local ctx = context.render_block(0)
+	if not ctx or ctx == "" then
+		return body
+	end
+	return ctx .. "\n\n" .. body
+end
+
 function M.build_explain(ft)
 	ft = ft or ""
 
@@ -86,10 +95,11 @@ end
 
 function M.build_apply(user_instruction, selected_text)
 	local template = store.get("apply")
-	return with_header(substitute(template, {
+	local rendered = substitute(template, {
 		instruction = user_instruction,
 		selected_text = selected_text,
-	}))
+	})
+	return with_header(maybe_with_context(rendered))
 end
 
 function M.build_raw_rewrite(user_instruction, ft, line_count)
@@ -105,7 +115,7 @@ function M.build_raw_rewrite(user_instruction, ft, line_count)
 		line_count_rule = line_count_rule,
 	})
 
-	local base = with_header(rendered)
+	local base = with_header(maybe_with_context(rendered))
 	local profile = mode.get()
 	return base .. (profile.rewrite_suffix or "")
 end
@@ -119,9 +129,10 @@ end
 
 function M.build_entire_file_rewrite(user_instruction)
 	local template = store.get("entire_file_rewrite")
-	return with_header(substitute(template, {
+	local rendered = substitute(template, {
 		instruction = user_instruction,
-	}))
+	})
+	return with_header(maybe_with_context(rendered))
 end
 
 return M

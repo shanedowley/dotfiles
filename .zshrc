@@ -55,6 +55,8 @@ setopt EXTENDED_HISTORY       # include timestamps
 alias la='ls -la'
 alias ds='dotsync'
 alias coding='cd "$CODING" && pwd' 
+alias cbc='pbcopy'
+alias cbp='pbpaste'
 alias desktop='cd "$DESKTOP" && pwd' 
 alias docs='cd "$DOCUMENTS" && pwd' 
 alias downloads='cd "$DOWNLOADS" && pwd' 
@@ -90,10 +92,6 @@ n() {
 # Shutdown and Reboot 
 alias shutdown='sudo shutdown -h +5s "System shutting down ..."'
 alias reboot='sudo shutdown -r +5s "System rebooting ..."'
-
-# Run Speccy emulators, zxsp or ZEsarUX
-alias zxsp='open -a zxsp'
-alias zesarux='/Applications/ZEsarUX.app/Contents/MacOS/zesarux'
 
 # Gaming :) 
 alias doom='$HOME/bin/doom-launcher'

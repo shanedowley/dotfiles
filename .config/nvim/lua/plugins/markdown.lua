@@ -5,7 +5,7 @@ return {
 		cmd = { "MarkdownPreview", "MarkdownPreviewStop", "MarkdownPreviewToggle" },
 		ft = { "markdown" },
 
-		-- ✅ Prevents yarn.lock modifications on update
+		-- Prevent yarn.lock modifications on update
 		build = "cd app && yarn install --frozen-lockfile",
 
 		init = function()
@@ -15,10 +15,8 @@ return {
 		end,
 
 		config = function()
-			-- Keymap for preview toggle
 			vim.keymap.set("n", "<leader>Mp", "<cmd>MarkdownPreviewToggle<CR>", { desc = "Toggle Markdown Preview" })
 
-			-- 🧩 Auto-rebuild once if plugin freshly installed
 			local plugin_path = vim.fn.stdpath("data") .. "/lazy/markdown-preview.nvim"
 			local build_marker = plugin_path .. "/.mkdp_built"
 
@@ -36,9 +34,7 @@ return {
 						{ detach = true }
 					)
 				else
-					vim.notify("Skipping markdown-preview build (offline or yarn missing)", vim.log.levels.WARN, {
-						title = "Markdown Preview",
-					})
+					-- Silent skip: this is non-critical and should not pollute startup UX.
 				end
 			end
 		end,
