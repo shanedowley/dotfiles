@@ -21,6 +21,15 @@ local allowed = {
 	failed = true,
 }
 
+local status_icons = {
+	idle = "○",
+	running = "⚙",
+	preview = "👁",
+	validating = "🧪",
+	applied = "✅",
+	failed = "✖",
+}
+
 local function now_string()
 	return os.date("%Y-%m-%d %H:%M:%S")
 end
@@ -38,6 +47,19 @@ local function basename(path)
 		return "-"
 	end
 	return vim.fn.fnamemodify(path, ":t")
+end
+
+local function status_with_icon(status)
+	local icon = status_icons[status or ""] or "•"
+	return string.format("%s %s", icon, tostring(status or "-"))
+end
+
+local function truncate(text, max_len)
+	text = tostring(text or "-")
+	if vim.fn.strdisplaywidth(text) <= max_len then
+		return text
+	end
+	return vim.fn.strcharpart(text, 0, max_len - 1) .. "…"
 end
 
 local function push_history(snapshot)
@@ -108,7 +130,7 @@ function M.render_lines()
 		"Codex Workflow State",
 		"====================",
 		"",
-		("Status:     %s"):format(tostring(s.status or "-")),
+		("Status:     %s"):format(status_with_icon(s.status)),
 		("Operation:  %s"):format(tostring(s.op or "-")),
 		("Mode:       %s"):format(tostring(s.mode or "-")),
 		("File:       %s"):format(tostring(s.file or "-")),
@@ -133,7 +155,7 @@ function M.render_history_lines()
 	end
 
 	lines[#lines + 1] = string.format(
-		"%-10s %-12s %-44s %-10s %-18s %s",
+		"%-10s %-14s %-34s %-10s %-16s %s",
 		"Time",
 		"Status",
 		"Operation",
@@ -143,14 +165,15 @@ function M.render_history_lines()
 	)
 	lines[#lines + 1] = string.rep("-", 120)
 
-	for _, item in ipairs(items) do
+	for i = #items, 1, -1 do
+		local item = items[i]
 		lines[#lines + 1] = string.format(
-			"%-10s %-12s %-44s %-10s %-18s %s",
+			"%-10s %-14s %-34s %-10s %-16s %s",
 			tostring(item.time or "-"),
-			tostring(item.status or "-"),
-			tostring(item.op or "-"),
+			status_with_icon(item.status),
+			truncate(item.op, 34),
 			tostring(item.mode or "-"),
-			basename(item.file),
+			truncate(basename(item.file), 16),
 			tostring(item.message or "-")
 		)
 	end

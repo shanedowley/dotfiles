@@ -73,7 +73,6 @@ return {
 			show_keys = true,
 			icons = { mappings = false },
 
-			-- IMPORTANT: let which-key trigger itself (no manual :WhichKey mappings!)
 			triggers = {
 				{ "<leader>", mode = "n" },
 				{ "<leader>", mode = "x" },
@@ -83,67 +82,68 @@ return {
 				----------------------------------------------------------------------
 				-- ASM
 				----------------------------------------------------------------------
-				{ "<leader>a", group = "+asm" },
-				{ "<leader>ad", desc = "DAP: Build & Debug ARM64 Assembly" },
-				{ "<leader>ar", desc = "DAP: Rerun last debug session" },
+				{ "<leader>a", group = "+asm", mode = "n" },
+				{ "<leader>ad", desc = "DAP: Build & Debug ARM64 Assembly", mode = "n" },
+				{ "<leader>ar", desc = "DAP: Rerun last debug session", mode = "n" },
 
 				----------------------------------------------------------------------
 				-- FILE
 				----------------------------------------------------------------------
-				{ "<leader>f", group = "+file" },
-				{ "<leader>fe", "<cmd>NvimTreeToggle<CR>", desc = "Explorer" },
-				{ "<leader>ff", "<cmd>Telescope find_files<CR>", desc = "Find file" },
-				{ "<leader>fg", "<cmd>Telescope live_grep<CR>", desc = "Live grep" },
-				{ "<leader>fr", "<cmd>Telescope oldfiles<CR>", desc = "Recent files" },
-				{ "<leader>fs", "<cmd>w<CR>", desc = "Save file" },
-				{ "<leader>fS", "<cmd>wa<CR>", desc = "Save all" },
-				{ "<leader>fn", "<cmd>enew<CR>", desc = "New file" },
+				{ "<leader>f", group = "+file", mode = "n" },
+				{ "<leader>fe", "<cmd>NvimTreeToggle<CR>", desc = "Explorer", mode = "n" },
+				{ "<leader>ff", "<cmd>Telescope find_files<CR>", desc = "Find file", mode = "n" },
+				{ "<leader>fg", "<cmd>Telescope live_grep<CR>", desc = "Live grep", mode = "n" },
+				{ "<leader>fr", "<cmd>Telescope oldfiles<CR>", desc = "Recent files", mode = "n" },
+				{ "<leader>fs", "<cmd>w<CR>", desc = "Save file", mode = "n" },
+				{ "<leader>fS", "<cmd>wa<CR>", desc = "Save all", mode = "n" },
+				{ "<leader>fn", "<cmd>enew<CR>", desc = "New file", mode = "n" },
 
 				----------------------------------------------------------------------
 				-- BUFFERS
 				----------------------------------------------------------------------
-				{ "<leader>b", group = "+buffer" },
-				{ "<leader>bb", "<cmd>Telescope buffers<CR>", desc = "List buffers" },
-				{ "<leader>bn", "<cmd>bnext<CR>", desc = "Next buffer" },
-				{ "<leader>bp", "<cmd>bprevious<CR>", desc = "Prev buffer" },
-				{ "<leader>bd", "<cmd>bd<CR>", desc = "Delete buffer" },
+				{ "<leader>b", group = "+buffer", mode = "n" },
+				{ "<leader>bb", "<cmd>Telescope buffers<CR>", desc = "List buffers", mode = "n" },
+				{ "<leader>bn", "<cmd>bnext<CR>", desc = "Next buffer", mode = "n" },
+				{ "<leader>bp", "<cmd>bprevious<CR>", desc = "Prev buffer", mode = "n" },
+				{ "<leader>bd", "<cmd>bd<CR>", desc = "Delete buffer", mode = "n" },
 
 				----------------------------------------------------------------------
 				-- WINDOWS
 				----------------------------------------------------------------------
-				{ "<leader>w", group = "+window" },
-				{ "<leader>wh", "<C-w>h", desc = "Go left" },
-				{ "<leader>wj", "<C-w>j", desc = "Go down" },
-				{ "<leader>wk", "<C-w>k", desc = "Go up" },
-				{ "<leader>wl", "<C-w>l", desc = "Go right" },
-				{ "<leader>wv", "<cmd>vsplit<CR>", desc = "Vertical split" },
-				{ "<leader>ws", "<cmd>split<CR>", desc = "Horizontal split" },
-				{ "<leader>wq", "<cmd>q<CR>", desc = "Close window" },
-				{ "<leader>w=", "<C-w>=", desc = "Equalize sizes" },
-				{ "<leader>w+", "<cmd>vertical resize +5<CR>", desc = "Increase width (+5)" },
-				{ "<leader>w-", "<cmd>vertical resize -5<CR>", desc = "Decrease width (-5)" },
-				{ "<leader>w>", "<cmd>resize +3<CR>", desc = "Increase height (+3)" },
-				{ "<leader>w<", "<cmd>resize -3<CR>", desc = "Decrease height (-3)" },
+				{ "<leader>w", group = "+window", mode = "n" },
+				{ "<leader>wh", "<C-w>h", desc = "Go left", mode = "n" },
+				{ "<leader>wj", "<C-w>j", desc = "Go down", mode = "n" },
+				{ "<leader>wk", "<C-w>k", desc = "Go up", mode = "n" },
+				{ "<leader>wl", "<C-w>l", desc = "Go right", mode = "n" },
+				{ "<leader>wv", "<cmd>vsplit<CR>", desc = "Vertical split", mode = "n" },
+				{ "<leader>ws", "<cmd>split<CR>", desc = "Horizontal split", mode = "n" },
+				{ "<leader>wq", "<cmd>q<CR>", desc = "Close window", mode = "n" },
+				{ "<leader>w=", "<C-w>=", desc = "Equalize sizes", mode = "n" },
+				{ "<leader>w+", "<cmd>vertical resize +5<CR>", desc = "Increase width (+5)", mode = "n" },
+				{ "<leader>w-", "<cmd>vertical resize -5<CR>", desc = "Decrease width (-5)", mode = "n" },
+				{ "<leader>w>", "<cmd>resize +3<CR>", desc = "Increase height (+3)", mode = "n" },
+				{ "<leader>w<", "<cmd>resize -3<CR>", desc = "Decrease height (-3)", mode = "n" },
 
 				----------------------------------------------------------------------
 				-- GIT
 				----------------------------------------------------------------------
-				{ "<leader>g", group = "+git" },
-				{ "<leader>gb", "<cmd>Gitsigns blame_line<CR>", desc = "Blame line" },
-				{ "<leader>gB", "<cmd>Git blame<CR>", desc = "Git: blame (split)" },
-				{ "<leader>gd", "<cmd>Gitsigns diffthis<CR>", desc = "Diff file" },
-				{ "<leader>gg", "<cmd>Git<CR>", desc = "Git: status (Fugitive)" },
-				{ "<leader>gl", "<cmd>LazyGit<CR>", desc = "Git: Lazygit" },
-				{ "<leader>gn", "<cmd>Gitsigns next_hunk<CR>", desc = "Next hunk" },
-				{ "<leader>gN", "<cmd>Gitsigns prev_hunk<CR>", desc = "Prev hunk" },
-				{ "<leader>gr", "<cmd>Gitsigns reset_hunk<CR>", desc = "Reset hunk" },
-				{ "<leader>gs", "<cmd>Gitsigns stage_hunk<CR>", desc = "Stage hunk" },
+				{ "<leader>g", group = "+git", mode = "n" },
+				{ "<leader>gb", "<cmd>Gitsigns blame_line<CR>", desc = "Blame line", mode = "n" },
+				{ "<leader>gB", "<cmd>Git blame<CR>", desc = "Git: blame (split)", mode = "n" },
+				{ "<leader>gd", "<cmd>Gitsigns diffthis<CR>", desc = "Diff file", mode = "n" },
+				{ "<leader>gg", "<cmd>Git<CR>", desc = "Git: status (Fugitive)", mode = "n" },
+				{ "<leader>gl", "<cmd>LazyGit<CR>", desc = "Git: Lazygit", mode = "n" },
+				{ "<leader>gn", "<cmd>Gitsigns next_hunk<CR>", desc = "Next hunk", mode = "n" },
+				{ "<leader>gN", "<cmd>Gitsigns prev_hunk<CR>", desc = "Prev hunk", mode = "n" },
+				{ "<leader>gr", "<cmd>Gitsigns reset_hunk<CR>", desc = "Reset hunk", mode = "n" },
+				{ "<leader>gs", "<cmd>Gitsigns stage_hunk<CR>", desc = "Stage hunk", mode = "n" },
 				{
 					"<leader>gu",
 					function()
 						require("gitsigns").undo_stage_hunk()
 					end,
 					desc = "Undo stage hunk",
+					mode = "n",
 				},
 				{
 					"<leader>gp",
@@ -151,20 +151,26 @@ return {
 						require("gitsigns").preview_hunk()
 					end,
 					desc = "Preview hunk",
+					mode = "n",
 				},
+				{ "<leader>g", group = "+git", mode = "x" },
+				{ "<leader>d", group = "+debug", mode = "x" },
+				{ "<leader>gs", desc = "Git: stage selection", mode = "x" },
+				{ "<leader>gr", desc = "Git: reset selection", mode = "x" },
+				{ "<leader>de", desc = "DAP: Eval", mode = "x" },
 
 				----------------------------------------------------------------------
 				-- UI
 				----------------------------------------------------------------------
-				{ "<leader>u", group = "+ui" },
-				{ "<leader>ut", desc = "Switch color scheme" },
+				{ "<leader>u", group = "+ui", mode = "n" },
+				{ "<leader>ut", desc = "Switch color scheme", mode = "n" },
 
 				----------------------------------------------------------------------
 				-- CODEX
 				----------------------------------------------------------------------
 				{ "<leader>c", group = "+codex", mode = { "n", "x" } },
 
-				-- Codex terminal / context
+				-- Codex terminal / context (normal only)
 				{ "<leader>ct", desc = "Terminal: Toggle/Open", mode = "n" },
 				{ "<leader>cT", desc = "Terminal: Focus", mode = "n" },
 				{ "<leader>cA", desc = "Terminal: Add file to context", mode = "n" },
@@ -175,8 +181,6 @@ return {
 				{ "<leader>cF", desc = "Run on entire file", mode = "n" },
 				{ "<leader>cp", desc = "Patch buffer (diff)", mode = "n" },
 				{ "<leader>cs", desc = "Scratchpad prompt", mode = "n" },
-
-				-- If these are also mapped in your broader config, keep them visible here
 				{ "<leader>cE", desc = "Explain current line", mode = "n" },
 				{ "<leader>ca", desc = "Apply inline (current line)", mode = "n" },
 				{ "<leader>cD", desc = "Preview diff (current line)", mode = "n" },
@@ -184,25 +188,23 @@ return {
 				-- Visual mode Codex actions
 				{ "<leader>cE", desc = "Explain selection", mode = "x" },
 				{ "<leader>cr", desc = "Replace selection", mode = "x" },
-				{ "<leader>co", desc = "Open output in scratch buffer", mode = "x" },
-				{ "<leader>ca", desc = "Apply inline (selection)", mode = "x" },
-				{ "<leader>cd", desc = "Preview diff (selection)", mode = "x" },
+				{ "<leader>co", desc = "Open output scratch", mode = "x" },
+				{ "<leader>ca", desc = "Apply inline", mode = "x" },
+				{ "<leader>cd", desc = "Preview diff", mode = "x" },
 				{ "<leader>cw", desc = "Write output to file", mode = "x" },
 				{ "<leader>cs", desc = "Scratchpad prompt", mode = "x" },
-
-				-- If you are still exposing the alias from your keymaps/init.lua
-				{ "<leader>cD", desc = "Preview diff (selection)", mode = "x" },
 
 				----------------------------------------------------------------------
 				-- LSP
 				----------------------------------------------------------------------
-				{ "<leader>l", group = "+lsp" },
+				{ "<leader>l", group = "+lsp", mode = "n" },
 				{
 					"<leader>ld",
 					function()
 						vim.lsp.buf.definition()
 					end,
 					desc = "Definition",
+					mode = "n",
 				},
 				{
 					"<leader>lD",
@@ -210,6 +212,7 @@ return {
 						vim.lsp.buf.declaration()
 					end,
 					desc = "Declaration",
+					mode = "n",
 				},
 				{
 					"<leader>lr",
@@ -217,6 +220,7 @@ return {
 						vim.lsp.buf.rename()
 					end,
 					desc = "Rename",
+					mode = "n",
 				},
 				{
 					"<leader>la",
@@ -224,6 +228,7 @@ return {
 						vim.lsp.buf.code_action()
 					end,
 					desc = "Code action",
+					mode = "n",
 				},
 				{
 					"<leader>lh",
@@ -231,6 +236,7 @@ return {
 						vim.lsp.buf.hover()
 					end,
 					desc = "Hover docs",
+					mode = "n",
 				},
 				{
 					"<leader>li",
@@ -238,6 +244,7 @@ return {
 						vim.lsp.buf.implementation()
 					end,
 					desc = "Implementation",
+					mode = "n",
 				},
 				{
 					"<leader>lt",
@@ -245,6 +252,7 @@ return {
 						vim.lsp.buf.type_definition()
 					end,
 					desc = "Type def",
+					mode = "n",
 				},
 				{
 					"<leader>lf",
@@ -252,15 +260,22 @@ return {
 						vim.lsp.buf.format({ async = true })
 					end,
 					desc = "Format",
+					mode = "n",
 				},
-				{ "<leader>ls", "<cmd>Telescope lsp_document_symbols<CR>", desc = "Document symbols" },
-				{ "<leader>lS", "<cmd>Telescope lsp_dynamic_workspace_symbols<CR>", desc = "Workspace symbols" },
+				{ "<leader>ls", "<cmd>Telescope lsp_document_symbols<CR>", desc = "Document symbols", mode = "n" },
+				{
+					"<leader>lS",
+					"<cmd>Telescope lsp_dynamic_workspace_symbols<CR>",
+					desc = "Workspace symbols",
+					mode = "n",
+				},
 				{
 					"<leader>le",
 					function()
 						vim.diagnostic.open_float()
 					end,
 					desc = "Line diagnostics",
+					mode = "n",
 				},
 				{
 					"<leader>l]",
@@ -268,6 +283,7 @@ return {
 						vim.diagnostic.goto_next()
 					end,
 					desc = "Next diagnostic",
+					mode = "n",
 				},
 				{
 					"<leader>l[",
@@ -275,17 +291,18 @@ return {
 						vim.diagnostic.goto_prev()
 					end,
 					desc = "Prev diagnostic",
+					mode = "n",
 				},
 
 				----------------------------------------------------------------------
 				-- DEBUG
 				----------------------------------------------------------------------
-				{ "<leader>d", group = "+debug" },
+				{ "<leader>d", group = "+debug", mode = "n" },
 
 				----------------------------------------------------------------------
 				-- TEST
 				----------------------------------------------------------------------
-				{ "<leader>t", group = "+test" },
+				{ "<leader>t", group = "+test", mode = "n" },
 				{
 					"<leader>tn",
 					function()
@@ -295,6 +312,7 @@ return {
 					cond = function()
 						return package.loaded["neotest"]
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>tf",
@@ -305,6 +323,7 @@ return {
 					cond = function()
 						return package.loaded["neotest"]
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>to",
@@ -315,6 +334,7 @@ return {
 					cond = function()
 						return package.loaded["neotest"]
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>ts",
@@ -325,12 +345,13 @@ return {
 					cond = function()
 						return package.loaded["neotest"]
 					end,
+					mode = "n",
 				},
 
 				----------------------------------------------------------------------
 				-- SESSIONS
 				----------------------------------------------------------------------
-				{ "<leader>q", group = "+sessions" },
+				{ "<leader>q", group = "+sessions", mode = "n" },
 				{
 					"<leader>qs",
 					function()
@@ -343,6 +364,7 @@ return {
 						end
 					end,
 					desc = "Save session",
+					mode = "n",
 				},
 				{
 					"<leader>ql",
@@ -358,6 +380,7 @@ return {
 						end
 					end,
 					desc = "Load session",
+					mode = "n",
 				},
 				{
 					"<leader>qd",
@@ -369,6 +392,7 @@ return {
 						end
 					end,
 					desc = "Disable persistence",
+					mode = "n",
 				},
 				{
 					"<leader>qq",
@@ -380,6 +404,7 @@ return {
 						vim.cmd("qa")
 					end,
 					desc = "Quit and save session",
+					mode = "n",
 				},
 
 				----------------------------------------------------------------------
@@ -391,6 +416,7 @@ return {
 					cond = function()
 						return pcall(require, "hop")
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>hw",
@@ -399,6 +425,7 @@ return {
 					cond = function()
 						return pcall(require, "hop")
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>hc",
@@ -407,6 +434,7 @@ return {
 					cond = function()
 						return pcall(require, "hop")
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>hl",
@@ -415,6 +443,7 @@ return {
 					cond = function()
 						return pcall(require, "hop")
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>hp",
@@ -423,6 +452,7 @@ return {
 					cond = function()
 						return pcall(require, "hop")
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>ha",
@@ -431,12 +461,13 @@ return {
 					cond = function()
 						return pcall(require, "hop")
 					end,
+					mode = "n",
 				},
 
 				----------------------------------------------------------------------
 				-- LaTeX (VimTeX)
 				----------------------------------------------------------------------
-				{ "<leader>x", group = "+latex" },
+				{ "<leader>x", group = "+latex", mode = "n" },
 				{
 					"<leader>xc",
 					"<cmd>VimtexCompile<CR>",
@@ -444,6 +475,7 @@ return {
 					cond = function()
 						return vim.bo.filetype == "tex"
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>xv",
@@ -452,6 +484,7 @@ return {
 					cond = function()
 						return vim.bo.filetype == "tex"
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>xp",
@@ -467,12 +500,13 @@ return {
 					cond = function()
 						return vim.bo.filetype == "tex"
 					end,
+					mode = "n",
 				},
 
 				----------------------------------------------------------------------
 				-- MARKDOWN
 				----------------------------------------------------------------------
-				{ "<leader>M", group = "+markdown" },
+				{ "<leader>M", group = "+markdown", mode = "n" },
 				{
 					"<leader>Mp",
 					"<cmd>MarkdownPreviewToggle<CR>",
@@ -480,6 +514,7 @@ return {
 					cond = function()
 						return vim.bo.filetype == "markdown"
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>Ms",
@@ -488,12 +523,13 @@ return {
 					cond = function()
 						return vim.bo.filetype == "markdown"
 					end,
+					mode = "n",
 				},
 
 				----------------------------------------------------------------------
 				-- PDF TOOLS
 				----------------------------------------------------------------------
-				{ "<leader>P", group = "+pdf" },
+				{ "<leader>P", group = "+pdf", mode = "n" },
 				{
 					"<leader>Pc",
 					function()
@@ -505,6 +541,7 @@ return {
 					cond = function()
 						return vim.bo.filetype == "tex"
 					end,
+					mode = "n",
 				},
 				{
 					"<leader>Po",
@@ -521,12 +558,13 @@ return {
 					cond = function()
 						return vim.bo.filetype == "tex"
 					end,
+					mode = "n",
 				},
 
 				----------------------------------------------------------------------
 				-- RUN
 				----------------------------------------------------------------------
-				{ "<leader>r", group = "+run" },
+				{ "<leader>r", group = "+run", mode = "n" },
 				{
 					"<leader>rr",
 					function()
@@ -537,8 +575,9 @@ return {
 						end
 					end,
 					desc = "Run :make",
+					mode = "n",
 				},
-				{ "<leader>rl", "<cmd>make!<CR>", desc = "Run :make (silent)" },
+				{ "<leader>rl", "<cmd>make!<CR>", desc = "Run :make (silent)", mode = "n" },
 
 				----------------------------------------------------------------------
 				-- SURROUND
@@ -546,7 +585,7 @@ return {
 				{
 					"<leader>m",
 					group = "+surround",
-					mode = { "n", "v" },
+					mode = { "n", "x" },
 					cond = function()
 						return package.loaded["nvim-surround"] ~= nil
 					end,
@@ -565,7 +604,7 @@ return {
 						vim.cmd('normal S"')
 					end,
 					desc = "Surround selection with quotes",
-					mode = "v",
+					mode = "x",
 				},
 				{
 					"<leader>mQ",
@@ -581,7 +620,7 @@ return {
 						vim.cmd("normal S'")
 					end,
 					desc = "Surround selection with single quotes",
-					mode = "v",
+					mode = "x",
 				},
 				{
 					"<leader>mb",
@@ -597,7 +636,7 @@ return {
 						vim.cmd("normal S)")
 					end,
 					desc = "Surround selection with parentheses",
-					mode = "v",
+					mode = "x",
 				},
 				{
 					"<leader>mB",
@@ -613,7 +652,7 @@ return {
 						vim.cmd("normal S}")
 					end,
 					desc = "Surround selection with braces",
-					mode = "v",
+					mode = "x",
 				},
 				{
 					"<leader>ms",
@@ -629,7 +668,7 @@ return {
 						vim.cmd("normal S]")
 					end,
 					desc = "Surround selection with square brackets",
-					mode = "v",
+					mode = "x",
 				},
 				{
 					"<leader>mt",
@@ -645,7 +684,7 @@ return {
 						vim.cmd("normal S>")
 					end,
 					desc = "Surround selection with angle brackets",
-					mode = "v",
+					mode = "x",
 				},
 				{
 					"<leader>mp",
@@ -661,7 +700,7 @@ return {
 						vim.cmd("normal S`")
 					end,
 					desc = "Surround selection with backticks",
-					mode = "v",
+					mode = "x",
 				},
 				{
 					"<leader>md",
@@ -695,3 +734,4 @@ return {
 		end,
 	},
 }
+

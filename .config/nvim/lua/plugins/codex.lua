@@ -11,7 +11,7 @@ return {
 			opts = opts or {}
 			opts.spec = opts.spec or {}
 
-			table.insert(opts.spec, { "<leader>c", group = "codex" })
+			table.insert(opts.spec, { "<leader>c", group = "codex", mode = { "n", "x" } })
 
 			return opts
 		end,
@@ -37,15 +37,15 @@ return {
 				function()
 					require("codex_cli").explain_selection()
 				end,
-				mode = { "x", "v" },
-				desc = "Explain selection (C learning)",
+				mode = "x",
+				desc = "Explain selection",
 			},
 			{
 				"<leader>cr",
 				function()
 					require("codex_cli").replace_selection()
 				end,
-				mode = { "x", "v" },
+				mode = "x",
 				desc = "Replace selection",
 			},
 			{
@@ -53,24 +53,24 @@ return {
 				function()
 					require("codex_cli").open_output_scratch()
 				end,
-				mode = { "x", "v" },
-				desc = "Open output in scratch buffer",
+				mode = "x",
+				desc = "Open output scratch",
 			},
 			{
 				"<leader>ca",
 				function()
 					require("codex_cli").apply_inline()
 				end,
-				mode = { "x", "v" },
-				desc = "Apply inline (smart diff)",
+				mode = "x",
+				desc = "Apply inline",
 			},
 			{
 				"<leader>cd",
 				function()
 					require("codex_cli").preview_diff()
 				end,
-				mode = { "x", "v" },
-				desc = "Preview diff (selection)",
+				mode = "x",
+				desc = "Preview diff",
 			},
 			{
 				"<leader>cw",
@@ -109,7 +109,7 @@ return {
 						end)
 					end)
 				end,
-				mode = { "x", "v" },
+				mode = "x",
 				desc = "Write output to file",
 			},
 

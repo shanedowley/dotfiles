@@ -10,6 +10,13 @@ local function copy(tbl)
 	return vim.deepcopy(tbl)
 end
 
+local function basename(path)
+	if not path or path == "" then
+		return "-"
+	end
+	return vim.fn.fnamemodify(path, ":t")
+end
+
 local function open_scratch(lines, title, filetype)
 	title = title or "Codex Failure"
 	filetype = filetype or "text"
@@ -34,14 +41,43 @@ local function open_scratch(lines, title, filetype)
 	return bufnr
 end
 
+local function render_failure_lines(f)
+	local lines = {
+		"Codex Recovery Report",
+		"=====================",
+		"",
+		("Failure kind: %s"):format(tostring(f.kind or "-")),
+		("Stage:        %s"):format(tostring(f.stage or "-")),
+		("Operation:    %s"):format(tostring(f.op or "-")),
+		("Mode:         %s"):format(tostring(f.mode or "-")),
+		("File:         %s"):format(tostring(f.file or "-")),
+		("File name:    %s"):format(tostring(f.file_name or basename(f.file))),
+		("Updated at:   %s"):format(tostring(f.updated_at or "-")),
+		"",
+		"Reason:",
+		tostring(f.reason or "-"),
+		"",
+		"Captured output:",
+	}
+
+	local payload = f.lines or { "No diagnostic output available." }
+	for _, line in ipairs(payload) do
+		lines[#lines + 1] = line
+	end
+
+	return lines
+end
+
 function M.capture(opts)
 	opts = opts or {}
 
 	last_failure = {
 		kind = opts.kind or "unknown_failure",
+		stage = opts.stage or "-",
 		op = opts.op,
 		mode = opts.mode,
 		file = opts.file,
+		file_name = basename(opts.file),
 		reason = opts.reason or "codex_failure",
 		title = opts.title or "Codex Failure",
 		lines = opts.lines or { "No diagnostic output available." },
@@ -74,32 +110,11 @@ function M.render_last_failure_lines()
 		}
 	end
 
-	local lines = {
-		"Codex Recovery Report",
-		"=====================",
-		"",
-		"Failure kind: " .. tostring(f.kind or "-"),
-		"Operation:    " .. tostring(f.op or "-"),
-		"Mode:         " .. tostring(f.mode or "-"),
-		"File:         " .. tostring(f.file or "-"),
-		"Updated at:   " .. tostring(f.updated_at or "-"),
-		"",
-		"Reason:",
-		tostring(f.reason or "-"),
-		"",
-		"Captured output:",
-	}
-
-	local payload = f.lines or { "No diagnostic output available." }
-	for _, line in ipairs(payload) do
-		lines[#lines + 1] = line
-	end
-
-	return lines
+	return render_failure_lines(f)
 end
 
 function M.show_last_failure()
-	open_scratch(M.render_last_failure_lines(), "Recovery", "markdown")
+	open_scratch(M.render_last_failure_lines(), "Recovery", "text")
 end
 
 function M.show_failure(opts)
@@ -107,12 +122,10 @@ function M.show_failure(opts)
 
 	local reason = opts.reason or "codex_failure"
 	local title = opts.title or "Codex Failure"
-	local lines = opts.lines or { "No diagnostic output available." }
-
-	M.capture(opts)
+	local captured = M.capture(opts)
 
 	vim.notify(reason, vim.log.levels.ERROR, { title = "Codex" })
-	open_scratch(lines, title, "text")
+	open_scratch(render_failure_lines(captured), title, "text")
 end
 
 return M

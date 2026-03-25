@@ -239,6 +239,7 @@ local function validate_apply_body(raw, body, want_lines, title_prefix, op_name)
 
 		recovery.show_failure({
 			kind = "apply_block_missing",
+			stage = "validate",
 			op = op_name,
 			mode = mode.current(),
 			file = current_file(0),
@@ -262,6 +263,7 @@ local function validate_apply_body(raw, body, want_lines, title_prefix, op_name)
 
 		recovery.show_failure({
 			kind = "codex_returned_error",
+			stage = "validate",
 			op = op_name,
 			mode = mode.current(),
 			file = current_file(0),
@@ -291,6 +293,7 @@ local function validate_apply_body(raw, body, want_lines, title_prefix, op_name)
 
 		recovery.show_failure({
 			kind = "wrong_line_count",
+			stage = "validate",
 			op = op_name,
 			mode = mode.current(),
 			file = current_file(0),
@@ -321,6 +324,7 @@ local function validate_rewrite_common(original_text, body, want_lines, opts)
 
 		recovery.show_failure({
 			kind = "rule_break_output",
+			stage = "validate",
 			op = op_name,
 			mode = mode.current(),
 			file = current_file(0),
@@ -347,6 +351,7 @@ local function validate_rewrite_common(original_text, body, want_lines, opts)
 
 		recovery.show_failure({
 			kind = why or "invalid_rewrite",
+			stage = "validate",
 			op = op_name,
 			mode = mode.current(),
 			file = current_file(0),
@@ -372,6 +377,7 @@ local function validate_rewrite_common(original_text, body, want_lines, opts)
 
 			recovery.show_failure({
 				kind = "preprocessor_injection_rejected",
+				stage = "validate",
 				op = op_name,
 				mode = mode.current(),
 				file = current_file(0),
@@ -398,6 +404,7 @@ local function validate_rewrite_common(original_text, body, want_lines, opts)
 
 			recovery.show_failure({
 				kind = "refactor_guard_rejected",
+				stage = "validate",
 				op = op_name,
 				mode = mode.current(),
 				file = current_file(0),
@@ -455,6 +462,7 @@ local function clang_validate_or_reject(bufnr, ft, start_line, end_line, body, u
 
 	recovery.show_failure({
 		kind = "clang_rejected",
+		stage = "validate",
 		op = op_name,
 		mode = mode.current(),
 		file = current_file(bufnr),
@@ -542,6 +550,7 @@ local function safe_preview_flow(opts)
 
 					recovery.show_failure({
 						kind = "diff_preview_failed",
+						stage = "preview",
 						op = op_name,
 						mode = mode.current(),
 						file = current_file(target_bufnr),
@@ -617,6 +626,7 @@ local function safe_preview_flow(opts)
 				local raw = parse.normalize_lines(result.output)
 				recovery.show_failure({
 					kind = "codex_exec_failed",
+					stage = "codex_exec",
 					op = op_name,
 					mode = mode.current(),
 					file = current_file(target_bufnr),
@@ -765,6 +775,7 @@ function M.apply_inline_current_line()
 				local raw = parse.normalize_lines(result.output)
 				recovery.show_failure({
 					kind = "codex_exec_failed",
+					stage = "codex_exec",
 					op = op_name,
 					mode = mode.current(),
 					file = current_file(0),
@@ -832,6 +843,7 @@ function M.replace_range(text, start_line, end_line, ft)
 				if #result.stderr > 0 then
 					recovery.show_failure({
 						kind = "codex_exec_failed",
+						stage = "codex_exec",
 						op = op_name,
 						mode = mode.current(),
 						file = current_file(0),
@@ -886,6 +898,7 @@ function M.open_output_scratch()
 				if #result.stderr > 0 then
 					recovery.show_failure({
 						kind = "codex_exec_failed",
+						stage = "codex_exec",
 						op = op_name,
 						mode = mode.current(),
 						file = current_file(0),
@@ -940,6 +953,7 @@ function M.save_output_to_file_text(text)
 						set_state_failed(op_name, 0, "Codex violated output rules; not writing file")
 						recovery.show_failure({
 							kind = "rule_break_output",
+							stage = "validate",
 							op = op_name,
 							mode = mode.current(),
 							file = current_file(0),
@@ -962,6 +976,7 @@ function M.save_output_to_file_text(text)
 					if #result.stderr > 0 then
 						recovery.show_failure({
 							kind = "codex_exec_failed",
+							stage = "codex_exec",
 							op = op_name,
 							mode = mode.current(),
 							file = current_file(0),
@@ -1028,6 +1043,7 @@ function M.apply_inline()
 				local raw = parse.normalize_lines(result.output)
 				recovery.show_failure({
 					kind = "codex_exec_failed",
+					stage = "codex_exec",
 					op = op_name,
 					mode = mode.current(),
 					file = current_file(0),
@@ -1146,6 +1162,7 @@ function M.run_current_line()
 				if #result.stderr > 0 then
 					recovery.show_failure({
 						kind = "codex_exec_failed",
+						stage = "codex_exec",
 						op = op_name,
 						mode = mode.current(),
 						file = current_file(0),
@@ -1183,6 +1200,7 @@ function M.run_entire_file()
 					set_state_failed(op_name, 0, "Codex returned non-file output; not overwriting buffer")
 					recovery.show_failure({
 						kind = "non_file_output_rejected",
+						stage = "validate",
 						op = op_name,
 						mode = mode.current(),
 						file = current_file(0),
@@ -1207,6 +1225,7 @@ function M.run_entire_file()
 				if #result.stderr > 0 then
 					recovery.show_failure({
 						kind = "codex_exec_failed",
+						stage = "codex_exec",
 						op = op_name,
 						mode = mode.current(),
 						file = current_file(0),
@@ -1254,6 +1273,7 @@ function M.scratchpad_prompt(default_prompt)
 				if #result.stderr > 0 then
 					recovery.show_failure({
 						kind = "codex_exec_failed",
+						stage = "codex_exec",
 						op = op_name,
 						mode = mode.current(),
 						file = current_file(0),
@@ -1473,4 +1493,3 @@ vim.api.nvim_create_user_command("CodexToggleContext", function()
 end, {})
 
 return M
-
