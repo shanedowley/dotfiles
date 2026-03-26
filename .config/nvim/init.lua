@@ -178,10 +178,18 @@ if ok_cmp then
 	caps = cmp_nvim_lsp.default_capabilities(caps)
 end
 
-local function clangd_root(fname)
+local function clangd_root(bufnr, on_dir)
+	local fname = vim.api.nvim_buf_get_name(bufnr)
+
+	if not fname or fname == "" then
+		on_dir(nil)
+		return
+	end
+
 	local projects = "/Users/shane/Documents/Coding/c-projects"
 	if fname:sub(1, #projects) == projects then
-		return projects
+		on_dir(projects)
+		return
 	end
 
 	local root = vim.fs.root(fname, {
@@ -191,10 +199,11 @@ local function clangd_root(fname)
 		".git",
 	})
 
-	return root or vim.fs.dirname(fname)
+	on_dir(root or vim.fs.dirname(fname))
 end
 
 local clangd_cfg = {
+	cmd = { "clangd" },
 	capabilities = caps,
 	root_dir = clangd_root,
 	filetypes = { "c", "cpp", "objc", "objcpp" },
@@ -206,7 +215,26 @@ if vim.lsp.config and vim.lsp.enable then
 else
 	local ok_lspconfig, lspconfig = pcall(require, "lspconfig")
 	if ok_lspconfig then
-		lspconfig.clangd.setup(clangd_cfg)
+		lspconfig.clangd.setup({
+			cmd = { "clangd" },
+			capabilities = caps,
+			root_dir = function(fname)
+				local projects = "/Users/shane/Documents/Coding/c-projects"
+				if fname:sub(1, #projects) == projects then
+					return projects
+				end
+
+				local root = vim.fs.root(fname, {
+					"compile_commands.json",
+					"compile_flags.txt",
+					"CMakeLists.txt",
+					".git",
+				})
+
+				return root or vim.fs.dirname(fname)
+			end,
+			filetypes = { "c", "cpp", "objc", "objcpp" },
+		})
 	end
 end
 
@@ -256,4 +284,3 @@ vim.api.nvim_create_user_command("FixCurlyQuotes", function()
 
 	print("Curly quotes cleaned ✓")
 end, {})
-
