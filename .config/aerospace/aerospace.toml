@@ -2,17 +2,46 @@
 # AeroSpace config
 # =========================
 #
-# Workspace intent map
+# Workspace archetypes
+#
+# Archetype 1 — Deep Work
 # 0 = Neovide
 # 1 = Ghostty
+#
+# Archetype 2 — Planning / Comms
 # 2 = Calendar
 # 3 = Mail
-# 4 = Safari / browsing / research
+# 4 = Notes
+#
+# Archetype 3 — Research / Production
 # 5 = ChatGPT
-# 6 = Gemini 
-# 7 = Notes
+# 6 = Gemini
+# 7 = Safari / browsing / research
 # 8 = Finder
 # 9 = Microsoft Office
+#
+# Behavioural intent
+#
+# Archetype 1 — Deep Work
+# - one anchor app per workspace
+# - minimal context switching
+# - optimise for immersion and execution
+#
+# Archetype 2 — Planning / Comms
+# - short visits
+# - scheduling, coordination, inbox, capture
+# - lightweight support work, not main production work
+#
+# Archetype 3 — Research / Production
+# - lateral movement across tools is expected
+# - research, synthesis, file handling, writing, deck/doc production
+# - optimise for turning inputs into outputs
+#
+# Design intent
+# - Keep primary apps on fixed workspaces
+# - Prefer maximised tiling over macOS native fullscreen
+# - Keep utility/comms apps floating unless explicitly promoted later
+# - Preserve predictable muscle memory over novelty
 #
 # Change discipline
 # 1. Edit this file
@@ -32,8 +61,12 @@ exec-on-workspace-change = [
   'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE="$AEROSPACE_FOCUSED_WORKSPACE"'
 ]
 
+# Global tiling defaults
+# Root layout stays simple and predictable.
 default-root-container-layout = "tiles"
 default-root-container-orientation = "horizontal"
+
+# Normalisation keeps nested containers sane.
 enable-normalization-flatten-containers = true
 enable-normalization-opposite-orientation-for-nested-containers = true
 
@@ -41,66 +74,75 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 outer.top = 40
 
 # =========================
-# Primary fullscreen apps
+# Archetype 1 — Deep Work
 # =========================
-# Rule design:
-# - One app = one clear rule
-# - No overlapping rules unless explicitly intended
-# - These apps open on their assigned workspace in native macOS fullscreen
+# One primary app per workspace.
+# Tiled and effectively maximised by owning the workspace.
 
 [[on-window-detected]]
 if.app-id = 'com.neovide.neovide'
-run = ['move-node-to-workspace 0', 'macos-native-fullscreen']
+run = ['move-node-to-workspace 0', 'layout tiles']
 
 [[on-window-detected]]
 if.app-id = 'com.mitchellh.ghostty'
-run = ['move-node-to-workspace 1', 'macos-native-fullscreen']
+run = ['move-node-to-workspace 1', 'layout tiles']
+
+# =========================
+# Archetype 2 — Planning / Comms
+# =========================
+# Sequential support spaces for planning and coordination.
 
 [[on-window-detected]]
 if.app-id = 'com.apple.iCal'
-run = ['move-node-to-workspace 2', 'macos-native-fullscreen']
+run = ['move-node-to-workspace 2', 'layout tiles']
 
 [[on-window-detected]]
 if.app-id = 'com.apple.mail'
-run = ['move-node-to-workspace 3', 'macos-native-fullscreen']
-
-[[on-window-detected]]
-if.app-id = 'com.apple.Safari'
-run = ['move-node-to-workspace 4', 'macos-native-fullscreen']
-
-[[on-window-detected]]
-if.app-id = 'com.openai.chat'
-run = ['move-node-to-workspace 5', 'macos-native-fullscreen']
-
-[[on-window-detected]]
-if.app-name-regex-substring = 'Gemini'
-run = ['move-node-to-workspace 6', 'macos-native-fullscreen']
+run = ['move-node-to-workspace 3', 'layout tiles']
 
 [[on-window-detected]]
 if.app-id = 'com.apple.Notes'
-run = ['move-node-to-workspace 7', 'macos-native-fullscreen']
+run = ['move-node-to-workspace 4', 'layout tiles']
+
+# =========================
+# Archetype 3 — Research / Production
+# =========================
+# Sequential spaces for synthesis, browsing, file navigation, and output creation.
+
+[[on-window-detected]]
+if.app-id = 'com.openai.chat'
+run = ['move-node-to-workspace 5', 'layout tiles']
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'Gemini'
+run = ['move-node-to-workspace 6', 'layout tiles']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Safari'
+run = ['move-node-to-workspace 7', 'layout tiles']
 
 [[on-window-detected]]
 if.app-id = 'com.apple.finder'
-run = ['move-node-to-workspace 8', 'macos-native-fullscreen']
+run = ['move-node-to-workspace 8', 'layout tiles']
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.Powerpoint'
-run = ['move-node-to-workspace 9', 'macos-native-fullscreen']
+run = ['move-node-to-workspace 9', 'layout tiles']
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.Word'
-run = ['move-node-to-workspace 9', 'macos-native-fullscreen']
+run = ['move-node-to-workspace 9', 'layout tiles']
 
 [[on-window-detected]]
 if.app-id = 'com.microsoft.Excel'
-run = ['move-node-to-workspace 9', 'macos-native-fullscreen']
+run = ['move-node-to-workspace 9', 'layout tiles']
 
 # =========================
 # Floating utility / comms apps
 # =========================
-# These apps should remain floating only.
-# No workspace assignment rules are defined for them.
+# These remain floating by design.
+# They support the main archetypes without claiming fixed workspaces.
+# Promote any of these later only if repeated usage proves it is worth it.
 
 [[on-window-detected]]
 if.app-id = 'com.apple.AddressBook'

@@ -46,6 +46,51 @@ local function widgets()
 	return ok and m or nil
 end
 
+local function cword_or_nil()
+	local w = vim.fn.expand("<cword>")
+	if not w or w == "" then
+		vim.notify("No symbol under cursor", vim.log.levels.WARN)
+		return nil
+	end
+	return w
+end
+
+local function dapui_eval_expr(expr)
+	local ui = dapui()
+	if not ui then
+		vim.notify("nvim-dap-ui not loaded yet", vim.log.levels.WARN)
+		return
+	end
+
+	local ok = pcall(function()
+		ui.eval(expr)
+	end)
+
+	if not ok then
+		vim.notify("DAP eval failed for expression: " .. expr, vim.log.levels.WARN)
+	end
+end
+
+local function dap_repl_exec(cmd)
+	local dap = dap_or_nil()
+	if not dap then
+		vim.notify("nvim-dap not loaded yet", vim.log.levels.WARN)
+		return
+	end
+
+	pcall(function()
+		dap.repl.open()
+	end)
+
+	local ok = pcall(function()
+		dap.repl.execute(cmd)
+	end)
+
+	if not ok then
+		vim.notify("DAP REPL command failed: " .. cmd, vim.log.levels.WARN)
+	end
+end
+
 -- Function keys
 vim.keymap.set("n", "<F5>", function()
 	local dap = dap_or_nil()
@@ -94,7 +139,7 @@ vim.keymap.set(
 )
 vim.keymap.set(
 	"n",
-	"<F12>",
+	"<S-F11>",
 	with_dap_loaded(function(d)
 		d.step_out()
 	end, "nvim-dap not loaded yet"),
@@ -301,6 +346,41 @@ vim.keymap.set({ "n", "v" }, "<leader>de", function()
 		ui.eval()
 	end
 end, { desc = "DAP: Eval" })
+
+-- Memory / pointer inspection
+vim.keymap.set("n", "<leader>da", function()
+	local sym = cword_or_nil()
+	if not sym then
+		return
+	end
+	dapui_eval_expr("&" .. sym)
+end, { desc = "DAP: Eval address of symbol" })
+
+vim.keymap.set("n", "<leader>dv", function()
+	local sym = cword_or_nil()
+	if not sym then
+		return
+	end
+	dapui_eval_expr("*" .. sym)
+end, { desc = "DAP: Dereference pointer under cursor" })
+
+vim.keymap.set("n", "<leader>dm", function()
+	local expr = vim.fn.input("Memory expr: ", "&")
+	if expr == nil or expr == "" then
+		return
+	end
+	dapui_eval_expr(expr)
+end, { desc = "DAP: Eval custom memory expression" })
+
+-- First-cut LLDB watchpoint
+vim.keymap.set("n", "<leader>dw", function()
+	local sym = cword_or_nil()
+	if not sym then
+		return
+	end
+	dap_repl_exec("watchpoint set variable " .. sym)
+	vim.notify("LLDB watchpoint command set for: " .. sym, vim.log.levels.INFO)
+end, { desc = "DAP: Set LLDB watchpoint on symbol" })
 
 -- Assembly helpers
 vim.keymap.set("n", "<leader>ad", function()
