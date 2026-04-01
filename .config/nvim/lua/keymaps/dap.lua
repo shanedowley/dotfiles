@@ -105,21 +105,15 @@ vim.keymap.set("n", "<F5>", function()
 		return
 	end
 
-	-- If not debugging, prevent neotest from racing the DAP shutdown/startup path.
-	pcall(function()
-		local neotest = require("neotest")
-		if neotest and neotest.run and neotest.run.stop then
-			neotest.run.stop()
-		end
-	end)
-
-	-- If not debugging, re-run last debug config (no Args prompt)
-	if dap.run_last then
-		dap.run_last()
-	else
-		dap.continue()
+	-- Otherwise do the full build + debug flow for current file.
+	local ok_run, run = pcall(require, "run")
+	if not ok_run or not run or not run.build_and_debug_current_c_cpp then
+		vim.notify("run.build_and_debug_current_c_cpp() not available", vim.log.levels.ERROR)
+		return
 	end
-end, { desc = "DAP: Continue / Start (smart)" })
+
+	run.build_and_debug_current_c_cpp()
+end, { desc = "DAP: Build & debug current file / Continue" })
 
 vim.keymap.set(
 	"n",

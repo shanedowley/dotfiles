@@ -19,7 +19,7 @@ local function load_plugin(name)
 	end)
 end
 
-function M.build_and_run_current_cpp()
+function M.build_and_run_current_c_cpp()
 	local Terminal = get_terminal()
 	if not Terminal then
 		return
@@ -30,14 +30,40 @@ function M.build_and_run_current_cpp()
 	local file = vim.fn.expand("%:p")
 	local base = vim.fn.expand("%:t:r")
 	local dir = vim.fn.expand("%:p:h")
+	local ft = vim.bo.filetype
 
-	local cmd = string.format(
-		"cd %q && g++ -std=c++20 -O2 %q -o %q && ./%q; echo ''; echo '--- Press any key to close ---'; read -n 1",
-		dir,
-		file,
-		base,
-		base
-	)
+	local compiler
+	local cmd
+
+	if ft == "c" then
+		compiler = "clang"
+		cmd = string.format(
+			"cd %q && %s -O0 %q -o %q && ./%q; echo ''; echo '--- Press any key to close ---'; read -n 1",
+			dir,
+			compiler,
+			file,
+			base,
+			base
+		)
+	elseif ft == "cpp" or ft == "cc" or ft == "cxx" then
+		compiler = "clang++"
+		cmd = string.format(
+			"cd %q && %s -std=c++20 -O0 %q -o %q && ./%q; echo ''; echo '--- Press any key to close ---'; read -n 1",
+			dir,
+			compiler,
+			file,
+			base,
+			base
+		)
+	else
+		vim.notify("Build & run is only supported for C/C++ buffers", vim.log.levels.WARN, { title = "run.lua" })
+		return
+	end
+
+	if vim.fn.executable(compiler) ~= 1 then
+		vim.notify(("Compiler not found: %s"):format(compiler), vim.log.levels.ERROR, { title = "run.lua" })
+		return
+	end
 
 	Terminal:new({
 		cmd = cmd,
@@ -141,4 +167,3 @@ function M.build_project_with_make()
 end
 
 return M
-

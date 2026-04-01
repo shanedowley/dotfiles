@@ -1,7 +1,7 @@
 -- ~/.config/nvim/lua/keymaps/run.lua
 local run = require("run")
 
-vim.keymap.set("n", "<leader>rb", run.build_and_run_current_cpp, {
+vim.keymap.set("n", "<leader>rb", run.build_and_run_current_c_cpp, {
 	desc = "Run: Build & run current C/C++ file",
 })
 
