@@ -4,11 +4,11 @@ font-size = 14
 
 # Rendering
 background-opacity = 1.0
-cursor-style = block
 
 # Behaviour
 confirm-close-surface = false
 copy-on-select = true
+shell-integration-features = no-cursor
 
 # Scrollback
 scrollback-limit = 500000000
@@ -17,8 +17,5 @@ scrollback-limit = 500000000
 window-padding-x = 6
 window-padding-y = 6
 
-# theme = Catppuccin Mocha
+# Theme
 theme = Nightfox
-
-
-cursor-style = block

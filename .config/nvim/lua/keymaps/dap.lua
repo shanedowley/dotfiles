@@ -210,8 +210,39 @@ vim.keymap.set(
 -- Widgets / inspection
 vim.keymap.set("n", "<leader>dh", function()
 	local w = widgets()
-	if w then
-		w.hover()
+	if not w then
+		return
+	end
+
+	-- Capture current window before opening hover
+	local cur_win = vim.api.nvim_get_current_win()
+
+	-- Open hover
+	w.hover()
+
+	-- Find the new floating window
+	for _, win in ipairs(vim.api.nvim_list_wins()) do
+		if win ~= cur_win then
+			local config = vim.api.nvim_win_get_config(win)
+			if config.relative ~= "" then
+				-- This is a floating window → bind 'q' to close it
+				local buf = vim.api.nvim_win_get_buf(win)
+				vim.keymap.set("n", "q", function()
+					if vim.api.nvim_win_is_valid(win) then
+						vim.api.nvim_win_close(win, true)
+					end
+				end, { buffer = buf, silent = true })
+
+				-- Optional: also map <Esc>
+				vim.keymap.set("n", "<Esc>", function()
+					if vim.api.nvim_win_is_valid(win) then
+						vim.api.nvim_win_close(win, true)
+					end
+				end, { buffer = buf, silent = true })
+
+				break
+			end
+		end
 	end
 end, { desc = "DAP: Hover variables" })
 
