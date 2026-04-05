@@ -100,9 +100,7 @@ alias shutdown='sudo shutdown -h +5s "System shutting down ..."'
 alias reboot='sudo shutdown -r +5s "System rebooting ..."'
 
 # Gaming :)
-alias doom='$HOME/bin/doom-launcher'
-alias deadcells='/Applications/"Dead Cells"/deadcells &'
-alias oolite='/Applications/Oolite.app/Contents/MacOS/Oolite &'
+alias game='$HOME/bin/games-launcher'
 
 # Start Jekyll and Tailwind servers for Web and CSS dev. From project root:
 alias webdev="npm run dev"
@@ -229,6 +227,8 @@ function zle-line-finish {
 zle -N zle-line-finish
 
 
-
 # ---- Starship Set Up ----
 eval "$(starship init zsh)"
+
+
+

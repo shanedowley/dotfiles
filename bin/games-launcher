@@ -8,6 +8,7 @@ game_names=(
   "Dead Cells"
   "Oolite"
   "Tetris"
+  "To the Moon"
 )
 
 # 2) Matching commands to launch each game (same index as game_names)
@@ -16,6 +17,7 @@ game_cmds=(
   'open -a "/Applications/Dead Cells/deadcells"'
   'open -a "/Applications/Oolite.app/Contents/MacOS/Oolite"'
   "/opt/homebrew/bin/tetris"
+  'open -a "/Applications/To The Moon.app/Contents/MacOS/mkxp"'
 )
 
 while true; do
