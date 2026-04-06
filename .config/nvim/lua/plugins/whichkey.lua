@@ -507,24 +507,6 @@ return {
 				-- MARKDOWN
 				----------------------------------------------------------------------
 				{ "<leader>M", group = "+markdown", mode = "n" },
-				{
-					"<leader>Mp",
-					"<cmd>MarkdownPreviewToggle<CR>",
-					desc = "Toggle Preview",
-					cond = function()
-						return vim.bo.filetype == "markdown"
-					end,
-					mode = "n",
-				},
-				{
-					"<leader>Ms",
-					"<cmd>MarkdownPreviewStop<CR>",
-					desc = "Stop preview",
-					cond = function()
-						return vim.bo.filetype == "markdown"
-					end,
-					mode = "n",
-				},
 
 				----------------------------------------------------------------------
 				-- PDF TOOLS
@@ -734,4 +716,3 @@ return {
 		end,
 	},
 }
-

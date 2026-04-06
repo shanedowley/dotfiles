@@ -23,7 +23,7 @@ return {
 	{ import = "plugins.formatter", event = "BufWritePre" },
 	{ import = "plugins.debug", event = "VeryLazy" },
 	{ import = "plugins.sessions", event = "BufReadPre" },
-	{ import = "plugins.markdown", ft = { "markdown" } }, -- 🧩 Markdown Preview plugin
+	{ import = "plugins.markdown" },
 	{ import = "plugins.whichkey", event = "VeryLazy" },
 	{ import = "plugins.git", event = "BufReadPre" },
 	{ import = "plugins.web", ft = { "html", "css", "javascript", "typescript" } },

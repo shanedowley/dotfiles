@@ -7,6 +7,7 @@ game_names=(
   "Doom"
   "Dead Cells"
   "Oolite"
+  "Super Mario 64"
   "Tetris"
   "To the Moon"
 )
@@ -16,6 +17,7 @@ game_cmds=(
   "${HOME}/bin/doom-launcher"
   'open -a "/Applications/Dead Cells/deadcells"'
   'open -a "/Applications/Oolite.app/Contents/MacOS/Oolite"'
+  "/Users/shane/sm64ex/build/us_pc/sm64.us.f3dex2e --fullscreen --widescreen"
   "/opt/homebrew/bin/tetris"
   'open -a "/Applications/To The Moon.app/Contents/MacOS/mkxp"'
 )
