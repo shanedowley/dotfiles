@@ -5,6 +5,7 @@
 # - Presets (Aliens TC 2017, SIGIL, SIGIL2, Master Levels, NERVE, etc.)
 # - Standard mode (pick IWAD + optional mods)
 # - Safety: blocks mixing Aliens TC component files in Standard mode
+# - --last support (replay last successful launch)
 #
 # Tested for zsh array safety + macOS paths with spaces.
 
@@ -15,9 +16,8 @@ WAD_DIR="$HOME/Library/Application Support/gzdoom"
 MOD_DIR="$WAD_DIR/mods"
 ENGINE="/Applications/GZDoom.app/Contents/MacOS/gzdoom"
 RESOURCES="/Applications/GZDoom.app/Contents/Resources"
-
-# Prefer storing profiles alongside your gzdoom data (keeps it all together)
 PROFILE_DIR="$WAD_DIR/profiles"
+LAST_RUN_FILE="$HOME/.doom-last-run"
 
 # ---- Aliens TC 2017 files (in MOD_DIR) ----
 ALIENS_IWAD="$WAD_DIR/doom.wad"
@@ -39,7 +39,34 @@ ensure_dirs() {
   mkdir -p "$PROFILE_DIR" "$MOD_DIR"
 }
 
+save_last_run() {
+  local -a cmd=("$@")
+  {
+    print -r -- '#!/bin/zsh'
+    print -rn -- 'LAST_DOOM_CMD=('
+    printf '%q ' "${cmd[@]}"
+    print -r -- ')'
+  } >| "$LAST_RUN_FILE"
+  chmod +x "$LAST_RUN_FILE"
+}
 
+run_last() {
+  [[ -f "$LAST_RUN_FILE" ]] || die "No previous DOOM launch command saved."
+  source "$LAST_RUN_FILE"
+  [[ ${#LAST_DOOM_CMD[@]} -gt 0 ]] || die "Saved command file is invalid."
+  print -r -- "Replaying last launch:"
+  print -r -- "${(j: :)LAST_DOOM_CMD}"
+  exec "${LAST_DOOM_CMD[@]}"
+}
+
+launch_cmd() {
+  local -a cmd=("$@")
+  save_last_run "${cmd[@]}"
+  print -r -- ""
+  print -r -- "Executing:"
+  print -r -- "${(j: :)cmd}"
+  exec "${cmd[@]}"
+}
 
 # Find the base config that GZDoom uses on this machine.
 # We copy this into a profile the first time, so your existing settings carry over.
@@ -58,8 +85,7 @@ detect_base_config() {
     fi
   done
 
-  # If nothing exists yet, return a sensible default *target* path
-  # (profile files will still be created empty if base isn't found)
+  # If nothing exists yet, return a sensible default target path.
   print -r -- "$HOME/Library/Preferences/gzdoom.ini"
   return 0
 }
@@ -79,7 +105,6 @@ ensure_profile_file() {
   fi
 }
 
-# Builds a numbered menu from an array; prints items.
 print_menu() {
   local -a items=("$@")
   local i=1
@@ -89,13 +114,11 @@ print_menu() {
   done
 }
 
-# Safe numeric read (single key)
 read_choice_1key() {
   local prompt="$1"
   local max="$2"
   local ans=""
 
-  # Prompt to stderr so it doesn't get captured by $(...)
   read -k "ans?$prompt" >&2
   printf "\n" >&2
 
@@ -103,18 +126,20 @@ read_choice_1key() {
   [[ "$ans" == <-> ]] || return 1
   (( ans >= 1 && ans <= max )) || return 1
 
-  # ONLY the answer goes to stdout (captured)
   print -r -- "$ans"
   return 0
 }
 
-
-# ---- Presentation ----
-clear
-print -r -- $'\e[1;32m=== GZDoom Launcher (Profiles + Presets) ===\e[0m\n'
-
+# ---- Startup ----
 ensure_engine
 ensure_dirs
+
+if [[ "${1-}" == "--last" ]]; then
+  run_last
+fi
+
+clear
+print -r -- $'\e[1;32m=== GZDoom Launcher (Profiles + Presets) ===\e[0m\n'
 
 BASE_CFG="$(detect_base_config)"
 
@@ -128,7 +153,7 @@ PROFILE_CHOICE="$(read_choice_1key "Enter number: " "${#profiles[@]}")" || die "
 
 PROFILE_NAME=""
 PROFILE_CFG=""
-PROFILE_SETS=()  # optional launch-time enforced settings
+PROFILE_SETS=()
 
 case "$PROFILE_CHOICE" in
   1)
@@ -191,12 +216,10 @@ if [[ "$MODE_CHOICE" == "2" ]]; then
 
   case "$PRESET_CHOICE" in
     1)
-      # --- Aliens TC 2017 ---
       [[ -f "$ALIENS_IWAD" ]] || die "Missing IWAD: $ALIENS_IWAD"
       [[ -f "$ALIENS_MAPS" ]] || die "Missing: $ALIENS_MAPS"
       [[ -f "$ALIENS_AUD"  ]] || die "Missing: $ALIENS_AUD"
 
-      # Prefer .DEH if present; else .BEX; else fail.
       ALIENS_DEH=""
       if [[ -f "$ALIENS_DEH_DEH" ]]; then
         ALIENS_DEH="$ALIENS_DEH_DEH"
@@ -209,46 +232,82 @@ if [[ "$MODE_CHOICE" == "2" ]]; then
       ALIENS_LOAD=("$ALIENS_MAPS" "$ALIENS_AUD")
       [[ -f "$ALIENS_PSXMUSIC" ]] && ALIENS_LOAD+=("$ALIENS_PSXMUSIC")
 
-      printf "\nLaunching preset: Aliens TC 2017\n"
+      print -r -- ""
+      print -r -- "Launching preset: Aliens TC 2017"
       print -r -- "  CONFIG: $PROFILE_CFG"
       print -r -- "  IWAD  : $ALIENS_IWAD"
       print -r -- "  DEH   : $ALIENS_DEH"
-      printf "  FILES : %s\n\n" "${(j: :)ALIENS_LOAD}"
+      print -r -- "  FILES : ${(j: :)ALIENS_LOAD}"
 
-      exec "$ENGINE" \
-        -config "$PROFILE_CFG" \
-        -iwad "$ALIENS_IWAD" \
-        -deh "$ALIENS_DEH" \
-        -file "${ALIENS_LOAD[@]}" \
+      CMD=(
+        "$ENGINE"
+        -config "$PROFILE_CFG"
+        -iwad "$ALIENS_IWAD"
+        -deh "$ALIENS_DEH"
+        -file "${ALIENS_LOAD[@]}"
         "${PROFILE_SETS[@]}"
+      )
+      launch_cmd "${CMD[@]}"
       ;;
 
     2)
       [[ -f "$WAD_DIR/doom.wad" ]] || die "Missing IWAD: $WAD_DIR/doom.wad"
       [[ -f "$MOD_DIR/sigil.wad" ]] || die "Missing mod: $MOD_DIR/sigil.wad"
-      printf "\nLaunching preset: SIGIL\n"
-      exec "$ENGINE" -config "$PROFILE_CFG" -iwad "$WAD_DIR/doom.wad" -file "$MOD_DIR/sigil.wad" "${PROFILE_SETS[@]}"
+      print -r -- ""
+      print -r -- "Launching preset: SIGIL"
+      CMD=(
+        "$ENGINE"
+        -config "$PROFILE_CFG"
+        -iwad "$WAD_DIR/doom.wad"
+        -file "$MOD_DIR/sigil.wad"
+        "${PROFILE_SETS[@]}"
+      )
+      launch_cmd "${CMD[@]}"
       ;;
 
     3)
       [[ -f "$WAD_DIR/doom.wad" ]] || die "Missing IWAD: $WAD_DIR/doom.wad"
       [[ -f "$MOD_DIR/sigil2.wad" ]] || die "Missing mod: $MOD_DIR/sigil2.wad"
-      printf "\nLaunching preset: SIGIL II\n"
-      exec "$ENGINE" -config "$PROFILE_CFG" -iwad "$WAD_DIR/doom.wad" -file "$MOD_DIR/sigil2.wad" "${PROFILE_SETS[@]}"
+      print -r -- ""
+      print -r -- "Launching preset: SIGIL II"
+      CMD=(
+        "$ENGINE"
+        -config "$PROFILE_CFG"
+        -iwad "$WAD_DIR/doom.wad"
+        -file "$MOD_DIR/sigil2.wad"
+        "${PROFILE_SETS[@]}"
+      )
+      launch_cmd "${CMD[@]}"
       ;;
 
     4)
       [[ -f "$WAD_DIR/doom2.wad" ]] || die "Missing IWAD: $WAD_DIR/doom2.wad"
       [[ -f "$MOD_DIR/masterlevels.wad" ]] || die "Missing mod: $MOD_DIR/masterlevels.wad"
-      printf "\nLaunching preset: Master Levels\n"
-      exec "$ENGINE" -config "$PROFILE_CFG" -iwad "$WAD_DIR/doom2.wad" -file "$MOD_DIR/masterlevels.wad" "${PROFILE_SETS[@]}"
+      print -r -- ""
+      print -r -- "Launching preset: Master Levels"
+      CMD=(
+        "$ENGINE"
+        -config "$PROFILE_CFG"
+        -iwad "$WAD_DIR/doom2.wad"
+        -file "$MOD_DIR/masterlevels.wad"
+        "${PROFILE_SETS[@]}"
+      )
+      launch_cmd "${CMD[@]}"
       ;;
 
     5)
       [[ -f "$WAD_DIR/doom2.wad" ]] || die "Missing IWAD: $WAD_DIR/doom2.wad"
       [[ -f "$MOD_DIR/nerve.wad" ]] || die "Missing mod: $MOD_DIR/nerve.wad"
-      printf "\nLaunching preset: No Rest for the Living\n"
-      exec "$ENGINE" -config "$PROFILE_CFG" -iwad "$WAD_DIR/doom2.wad" -file "$MOD_DIR/nerve.wad" "${PROFILE_SETS[@]}"
+      print -r -- ""
+      print -r -- "Launching preset: No Rest for the Living"
+      CMD=(
+        "$ENGINE"
+        -config "$PROFILE_CFG"
+        -iwad "$WAD_DIR/doom2.wad"
+        -file "$MOD_DIR/nerve.wad"
+        "${PROFILE_SETS[@]}"
+      )
+      launch_cmd "${CMD[@]}"
       ;;
   esac
 fi
@@ -257,7 +316,6 @@ fi
 # STANDARD MODE
 # -------------------------
 
-# IWADs
 IWADS=(
   "$WAD_DIR/doom.wad"
   "$WAD_DIR/doom1.wad"
@@ -266,10 +324,8 @@ IWADS=(
   "$WAD_DIR/tnt.wad"
 )
 
-# Mods list (.wad + .pk3), but EXCLUDE Aliens TC component files to prevent accidental mixing
-# (You can still run Aliens via preset)
 MODS=()
-for f in ${(on)"$MOD_DIR"/*.(wad|pk3)(N)}; do
+for f in "$MOD_DIR"/*.(wad|pk3)(N); do
   bn="$(basename "$f")"
   case "$bn" in
     ATCLEV.WAD|ATCUD19.DEH|ATCUD19.BEX|AUD9.5.pk3|PSXMUSIC.WAD)
@@ -293,12 +349,16 @@ for wad in "${IWADS[@]}"; do
 done
 print -r -- ""
 
+(( ${#VALID_IWADS[@]} > 0 )) || die "No IWADs found in $WAD_DIR"
+
 IWAD_CHOICE="$(read_choice_1key "Enter number: " "${#VALID_IWADS[@]}")" || die "Invalid IWAD selection."
 SELECTED_WAD="${VALID_IWADS[$IWAD_CHOICE]}"
 
-printf "\nIWAD: $SELECTED_WAD\n\n"
+print -r -- ""
+print -r -- "IWAD: $SELECTED_WAD"
+print -r -- ""
 
-printf "Available mods (Aliens TC components hidden; use Presets → Aliens TC):\n"
+print -r -- "Available mods (Aliens TC components hidden; use Presets → Aliens TC):"
 if (( ${#MODS[@]} == 0 )); then
   print -r -- "  (none found)"
 else
@@ -309,26 +369,33 @@ else
   done
 fi
 
-printf "\nEnter mod numbers separated by spaces to load (or press Enter to skip):\n"
+print -r -- ""
+print -r -- "Enter mod numbers separated by spaces to load (or press Enter to skip):"
 read "MOD_SELECTION?Mods: "
 
 SELECTED_MODS=()
-for num in ${(z)MOD_SELECTION}; do
+for num in ${(s: :)MOD_SELECTION}; do
   [[ "$num" == <-> ]] || continue
   [[ "$num" -ge 1 && "$num" -le ${#MODS[@]} ]] && SELECTED_MODS+=("${MODS[$num]}")
 done
 
-printf "\nExecuting:\n"
 cd "$RESOURCES" || exit 1
 
 if (( ${#SELECTED_MODS[@]} > 0 )); then
-  printf "%s\n" "$ENGINE -config \"$PROFILE_CFG\" -iwad \"$SELECTED_WAD\" -file ${SELECTED_MODS[*]} ${PROFILE_SETS[*]}"
-  exec "$ENGINE" -config "$PROFILE_CFG" -iwad "$SELECTED_WAD" -file "${SELECTED_MODS[@]}" "${PROFILE_SETS[@]}"
+  CMD=(
+    "$ENGINE"
+    -config "$PROFILE_CFG"
+    -iwad "$SELECTED_WAD"
+    -file "${SELECTED_MODS[@]}"
+    "${PROFILE_SETS[@]}"
+  )
+  launch_cmd "${CMD[@]}"
 else
-  printf "%s\n" "$ENGINE -config \"$PROFILE_CFG\" -iwad \"$SELECTED_WAD\" ${PROFILE_SETS[*]}"
-  exec "$ENGINE" -config "$PROFILE_CFG" -iwad "$SELECTED_WAD" "${PROFILE_SETS[@]}"
+  CMD=(
+    "$ENGINE"
+    -config "$PROFILE_CFG"
+    -iwad "$SELECTED_WAD"
+    "${PROFILE_SETS[@]}"
+  )
+  launch_cmd "${CMD[@]}"
 fi
-
-
-
-

@@ -15,6 +15,7 @@ export EDITOR="/opt/homebrew/bin/nvim"
 export TMP="$HOME/tmp"
 export READING="$HOME/Desktop/reading, writing and study"
 export DESKTOP="$HOME/Desktop"
+export APPSUPPORT="$HOME/Library/Application Support/"
 export DOCUMENTS="$HOME/iCloud/Documents"
 export DOWNLOADS="$HOME/Downloads"
 export WORK="$HOME/iCloud/Documents/Work"
@@ -100,7 +101,9 @@ alias shutdown='sudo shutdown -h +5s "System shutting down ..."'
 alias reboot='sudo shutdown -r +5s "System rebooting ..."'
 
 # Gaming :)
-alias game='$HOME/bin/games-launcher'
+alias game='$HOME/bin/game-launcher'
+alias doom-last='$HOME/bin/doom-launcher --last'
+alias sm64config='vim $APPSUPPORT/sm64ex/sm64config.txt'
 
 # Start Jekyll and Tailwind servers for Web and CSS dev. From project root:
 alias webdev="npm run dev"
