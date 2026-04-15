@@ -29,7 +29,7 @@ unset NVIM_LOG_FILE
 [ -f "$HOME/.zsh_secrets" ] && source "$HOME/.zsh_secrets"
 
 # Path to dotfiles
-export DOTFILES="$HOME/dotfiles"
+export DOTFILES="$HOME/.dotfiles"
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
