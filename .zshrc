@@ -140,13 +140,20 @@ function dotsync {
       "bin"
     )
 
-    local -a excludes=(
-      ':(exclude)**/.DS_Store'
-      ':(exclude)**/__MACOSX/**'
-      ':(exclude)**/._*'
-      ':(exclude)**/*~'
-      ':(exclude)**/.Trash/**'
-    )
+local -a excludes=(
+  ':(exclude)**/.DS_Store'
+  ':(exclude)**/__MACOSX/**'
+  ':(exclude)**/._*'
+  ':(exclude)**/*~'
+  ':(exclude)**/.Trash/**'
+  ':(exclude).config/nvim/nvim/**'
+  ':(exclude).config/nvim/gem/**'
+  ':(exclude).config/sketchybar/timer_state'
+  ':(exclude)**/*.bak'
+  ':(exclude)**/*.org'
+)
+
+
 
     local -a add_paths=()
     local p
