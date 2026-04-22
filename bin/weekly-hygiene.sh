@@ -3,6 +3,10 @@ set -euo pipefail
 
 # weekly-hygiene.sh
 #
+# Owner: Shane Dowley
+# Purpose: Dotfiles hygiene system (AIES-style: safe, observable, controlled)
+# Last-reviewed: 2026-04-22
+#
 # Purpose:
 #   Keep Shane's dotfiles/home-config system tidy with a repeatable audit loop.
 #

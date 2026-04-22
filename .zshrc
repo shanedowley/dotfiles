@@ -101,7 +101,7 @@ alias shutdown='sudo shutdown -h +5s "System shutting down ..."'
 alias reboot='sudo shutdown -r +5s "System rebooting ..."'
 
 # Gaming :)
-alias game='$HOME/bin/game-launcher'
+alias game='$HOME/bin/game-launcher.sh'
 alias doom-last='$HOME/bin/doom-launcher --last'
 alias sm64config='vim $APPSUPPORT/sm64ex/sm64config.txt'
 
@@ -115,6 +115,9 @@ alias clangsys='clang -target arm64-apple-macos -isysroot $(xcrun --show-sdk-pat
 alias dotgit='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 export GIT_SSH_COMMAND="/usr/bin/ssh"
 alias gs='git status'
+
+# Hygiene options and operations for my set up
+alias hygiene='$HOME/bin/hygiene-menu.sh'
 
 # dotsync: commits bare repo ~/.dotfiles (tracks selected $HOME paths)
 function dotsync {

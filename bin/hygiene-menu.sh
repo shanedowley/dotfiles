@@ -3,6 +3,10 @@ set -euo pipefail
 
 # hygiene-menu.sh
 #
+# Owner: Shane Dowley
+# Purpose: Dotfiles hygiene system (AIES-style: safe, observable, controlled)
+# Last-reviewed: 2026-04-22
+#
 # Simple CLI menu for Shane's dotfiles hygiene workflow.
 #
 # Supports:
@@ -196,18 +200,21 @@ track_new_file() {
       ;;
   esac
 
-  dotgit add -- "$relpath"
+  (
+    cd "$HOME"
+    dotgit add -- "$relpath"
 
-  if dotgit diff --cached --quiet; then
-    echo
-    echo "Nothing staged for:"
-    echo "  $relpath"
-    return 0
-  fi
+    if dotgit diff --cached --quiet; then
+      echo
+      echo "Nothing staged for:"
+      echo "  $relpath"
+      exit 0
+    fi
 
-  local msg="Add $relpath"
-  dotgit commit -m "$msg"
-  dotgit push origin main
+    local msg="Add $relpath"
+    dotgit commit -m "$msg"
+    dotgit push origin main
+  )
 
   echo
   echo "Tracked and pushed:"

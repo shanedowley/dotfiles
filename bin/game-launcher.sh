@@ -14,7 +14,7 @@ game_names=(
 
 # 2) Matching commands to launch each game (same index as game_names)
 game_cmds=(
-  "${HOME}/bin/doom-launcher"
+  "${HOME}/bin/doom-launcher.sh"
   'open -a "/Applications/Dead Cells/deadcells"'
   'open -a "/Applications/Oolite.app/Contents/MacOS/Oolite"'
   "/Users/shane/sm64ex/build/us_pc/sm64.us.f3dex2e --fullscreen --widescreen"
