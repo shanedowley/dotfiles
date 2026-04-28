@@ -70,15 +70,12 @@ alias reload='source "$HOME/.zshrc" >/dev/null && echo "🔁 zsh config reloaded
 alias rmapp='$HOME/bin/mac-clean-uninstall.sh'
 alias timer="$HOME/.config/sketchybar/timer.sh"
 alias timerstop="$HOME/.config/sketchybar/timer.sh stop"
-alias workdir='cd "$WORK" && pwd'
 
 # Avoid accidental deletions / overwrites
 alias rm='rm -i'
 alias mv='mv -i'
-alias cp='cp -i'
 
 # To invoke Neovim from the command line
-alias vim='/opt/homebrew/bin/nvim'
 alias vi='/opt/homebrew/bin/nvim'
 alias v='/opt/homebrew/bin/nvim'
 
