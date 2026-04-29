@@ -76,7 +76,6 @@ alias rm='rm -i'
 alias mv='mv -i'
 
 # To invoke Neovim from the command line
-alias vi='/opt/homebrew/bin/nvim'
 alias v='/opt/homebrew/bin/nvim'
 
 # 'n' to invoke Neovide silently and in the background passing a filename arg
